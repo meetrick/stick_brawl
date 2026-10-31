@@ -1640,6 +1640,24 @@ function buildMenu() {
 
   const room = new URLSearchParams(location.search).get('room');
   if (room) { $('codeInput').value = room.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); menuMsg('초대받은 방 코드가 입력됐어요. 캐릭터를 고르고 [참여]를 누르세요.'); }
+
+  setupInstallGuide();
+}
+
+/* iOS 브라우저는 전체화면 API가 없어 주소창·탭이 화면을 가린다. 홈 화면에 추가(standalone)해야 꽉 찬 화면이 된다. */
+function setupInstallGuide() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (!isIOS || standalone) return;
+  const guide = $('installGuide');
+  $('installBtn').classList.remove('hidden');
+  $('installBtn').addEventListener('click', () => guide.classList.remove('hidden'));
+  $('guideClose').addEventListener('click', () => guide.classList.add('hidden'));
+  if (!localStorage.getItem('sb_install_seen')) {
+    localStorage.setItem('sb_install_seen', '1');
+    guide.classList.remove('hidden');
+  }
 }
 
 function selectChar(id) {

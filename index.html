@@ -44,6 +44,7 @@
       <header class="title">
         <h1>Stick Brawl <span>스틱 브롤</span></h1>
         <p class="sub">三國 一騎討ち · 영웅을 선택하라</p>
+        <button id="installBtn" class="pill hidden" type="button">전체화면으로 하려면?</button>
       </header>
 
       <div id="charList"></div>
@@ -86,6 +87,24 @@
         </div>
       </div>
     </section>
+
+    <!-- iOS 홈 화면 추가 안내 -->
+    <div id="installGuide" class="hidden">
+      <div class="guide-card">
+        <h3>홈 화면에 추가하면 전체화면!</h3>
+        <p class="guide-sub">Safari에서는 주소창과 탭 때문에 화면 아래가 가려져요.</p>
+        <ol>
+          <li>
+            <b>공유</b> 버튼
+            <svg class="share-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            을 누르세요 <small>(안 보이면 주소창의 <b>···</b> 메뉴 안에 있어요)</small>
+          </li>
+          <li><b>홈 화면에 추가</b>를 누르세요</li>
+          <li>홈 화면의 <b>Stick Brawl</b> 아이콘으로 실행하면 주소창·탭 없이 꽉 찬 화면으로 열려요</li>
+        </ol>
+        <button id="guideClose" class="primary" type="button">알겠어요</button>
+      </div>
+    </div>
 
     <div id="rotate">
       <div>
