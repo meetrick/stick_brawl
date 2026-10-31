@@ -1,0 +1,20 @@
+{
+  "name": "Stick Brawl",
+  "short_name": "Stick Brawl",
+  "description": "삼국지 영웅들의 실시간 P2P 스틱맨 격투 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#e6ddc5",
+  "theme_color": "#e6ddc5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23e6ddc5'/%3E%3Ccircle cx='380' cy='130' r='60' fill='%23b8322a' opacity='.85'/%3E%3Cpath d='M300 250 L440 90' stroke='%238a9099' stroke-width='16' stroke-linecap='round'/%3E%3Cg stroke='%231f1a17' stroke-width='24' stroke-linecap='round' fill='none'%3E%3Ccircle cx='230' cy='140' r='42' fill='%23f3ead2'/%3E%3Cpath d='M230 182 L220 300 M220 300 L170 410 M220 300 L280 405 M226 215 L300 250 M226 215 L160 260'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

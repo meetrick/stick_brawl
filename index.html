@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Stick Brawl - 스틱 브롤</title>
+  <meta name="description" content="삼국지 영웅들의 실시간 P2P 스틱맨 격투 게임">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#e6ddc5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Stick Brawl">
+  <meta name="application-name" content="Stick Brawl">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23e6ddc5'/%3E%3Ccircle cx='380' cy='130' r='60' fill='%23b8322a' opacity='.85'/%3E%3Cpath d='M300 250 L440 90' stroke='%238a9099' stroke-width='16' stroke-linecap='round'/%3E%3Cg stroke='%231f1a17' stroke-width='24' stroke-linecap='round' fill='none'%3E%3Ccircle cx='230' cy='140' r='42' fill='%23f3ead2'/%3E%3Cpath d='M230 182 L220 300 M220 300 L170 410 M220 300 L280 405 M226 215 L300 250 M226 215 L160 260'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" id="appleIcon" href="">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <!-- 모바일 가상 패드 (터치 좌표 기반 히트 테스트) -->
+    <div id="pad" class="hidden">
+      <div class="cluster left">
+        <div class="btn" data-k="l">◀</div>
+        <div class="btn jump" data-k="j">점프</div>
+        <div class="btn" data-k="r">▶</div>
+      </div>
+      <div class="cluster right">
+        <div class="btn dash" data-k="d">대시</div>
+        <div class="btn atk" data-k="a">공격</div>
+      </div>
+    </div>
+    <button id="exitBtn" class="hidden" type="button">나가기</button>
+
+    <!-- 시작 화면 -->
+    <section id="menu" class="screen">
+      <header class="title">
+        <h1>Stick Brawl <span>스틱 브롤</span></h1>
+        <p class="sub">三國 一騎討ち · 영웅을 선택하라</p>
+      </header>
+
+      <div id="charList"></div>
+
+      <div id="charInfo">
+        <div class="info-main">
+          <div id="infoName"></div>
+          <div id="infoWeapon"></div>
+          <div id="infoDesc"></div>
+        </div>
+        <div id="infoStats"></div>
+      </div>
+
+      <div class="actions">
+        <button id="hostBtn" class="primary" type="button">방 만들기</button>
+        <div class="join">
+          <input id="codeInput" type="text" maxlength="4" placeholder="코드 4자리" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button id="joinBtn" type="button">참여</button>
+        </div>
+        <button id="practiceBtn" type="button">연습 (CPU)</button>
+      </div>
+
+      <div class="options">
+        <label><input type="checkbox" id="handicap"> 동생 핸디캡 모드 <small>(참여자 HP 1.5배 · 사거리 +30% · 피격범위 -20%)</small></label>
+        <label><input type="checkbox" id="soundOpt" checked> 효과음</label>
+        <label><input type="checkbox" id="hitboxOpt"> 판정 보기</label>
+      </div>
+      <p id="menuMsg"></p>
+    </section>
+
+    <!-- 대기실 -->
+    <section id="lobby" class="screen hidden">
+      <div class="lobby-card">
+        <h2 id="lobbyTitle">방 만들기</h2>
+        <div id="roomCode">----</div>
+        <p id="lobbyMsg">서버에 연결하는 중...</p>
+        <div class="lobby-actions">
+          <button id="copyBtn" type="button" class="hidden">초대 링크 복사</button>
+          <button id="cancelBtn" type="button">취소</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="rotate">
+      <div>
+        <div class="rotate-icon">⟳</div>
+        화면을 가로로 돌려주세요
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
