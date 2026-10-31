@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (로컬 테스트 서버 등)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Logs / temp
+*.log
+*.tmp
+.cache/
+dist/
