@@ -516,7 +516,95 @@ function updateAI(ai, me, opp, inp) {
  * Host-Authoritative: Host만 물리/충돌/체력을 계산하고 60Hz로 상태를 보낸다.
  * Client는 자신의 패드 입력만 보낸다. 입력의 "눌림"은 카운터로 보내므로 패킷 순서가 바뀌어도 누락되지 않는다.
  */
-const net = { peer: null, conn: null, role: null, code: '', joinTimer: 0, hostTries: 0 };
+const net = { peer: null, conn: null, role: null, code: '', joinTimer: 0, hostTries: 0, nat: null, linkTimer: 0 };
+
+/* PeerJS 기본 TURN(*.turn.peerjs.com)은 도메인이 사라져 DNS 오류만 내므로 STUN만 직접 지정한다. */
+const ICE_SERVERS = [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+];
+const isBadNat = k => k === 'symmetric' || k === 'blocked';
+
+/* 같은 로컬 포트인데 STUN 서버마다 바깥 포트가 다르게 보이면 대칭형 NAT라서 홀 펀칭이 거의 불가능하다. */
+function probeNat() {
+  return new Promise(resolve => {
+    let pc, done = false;
+    try { pc = new RTCPeerConnection({ iceServers: ICE_SERVERS }); } catch (e) { resolve({ kind: 'unknown', v6: false }); return; }
+    const maps = {};
+    let v6 = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { pc.close(); } catch (e) { /* ignore */ }
+      const sets = Object.values(maps);
+      const kind = !sets.length ? 'blocked' : sets.some(s => s.size > 1) ? 'symmetric' : 'open';
+      resolve({ kind, v6 });
+    };
+    pc.onicecandidate = e => {
+      if (!e.candidate || !e.candidate.candidate) { finish(); return; }
+      const p = e.candidate.candidate.split(' ');
+      if ((p[2] || '').toLowerCase() !== 'udp') return;
+      const addr = (p[4] || '').toLowerCase(), type = p[7];
+      if (addr.includes(':') && !addr.startsWith('fe80')) v6 = true;
+      if (type === 'srflx') {
+        const base = p[p.indexOf('rport') + 1];
+        (maps[base] = maps[base] || new Set()).add(addr + ':' + p[5]);
+      }
+    };
+    pc.createDataChannel('probe');
+    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(finish);
+    setTimeout(finish, 4000);
+  });
+}
+
+function natText(r, who = '내') {
+  if (!r || r.kind === 'unknown') return '';
+  const v6 = r.v6 ? ' · IPv6 지원' : '';
+  if (r.kind === 'open') return `${who} 네트워크: 직접 연결 가능성 좋음${v6}`;
+  if (r.kind === 'symmetric') return `${who} 네트워크: 직접 연결 가능성 낮음 (바깥 포트가 매번 바뀜)${v6}`;
+  return `${who} 네트워크: 직접 연결 가능성 낮음 (UDP 통신이 막힘)${v6}`;
+}
+
+function p2pFailMsg(mine, theirs) {
+  if (isBadNat(mine) && isBadNat(theirs)) return '두 기기 모두 직접 연결이 어려운 네트워크예요. 한 기기의 핫스팟에 다른 기기를 연결하거나 같은 Wi-Fi에서 시도해 보세요.';
+  if (isBadNat(mine)) return '이 기기의 네트워크가 직접 연결을 막고 있어요. Wi-Fi로 바꾸거나 상대 기기의 핫스팟에 연결해 보세요.';
+  if (isBadNat(theirs)) return '상대 기기의 네트워크가 직접 연결을 막고 있어요. 상대가 Wi-Fi로 바꾸거나 이 기기의 핫스팟에 연결해 보세요.';
+  return '기기끼리 직접 연결하지 못했어요. 한쪽이 Wi-Fi로 바꾸거나, 한 기기의 핫스팟에 다른 기기를 연결해 보세요.';
+}
+
+function startNatProbe() {
+  net.nat = null;
+  netInfo('내 네트워크 확인 중...');
+  const role = net.role, code = net.code;
+  const pr = probeNat().then(r => {
+    if (net.role === role && net.code === code) { net.nat = r; netInfo(natText(r)); }
+    return r;
+  });
+  return pr;
+}
+
+async function updateLinkInfo() {
+  const pc = net.conn && net.conn.peerConnection;
+  if (!pc || !game) return;
+  try {
+    const stats = await pc.getStats();
+    const byId = {};
+    let pair = null;
+    stats.forEach(s => { byId[s.id] = s; });
+    stats.forEach(s => { if (s.type === 'transport' && s.selectedCandidatePairId) pair = byId[s.selectedCandidatePairId]; });
+    if (!pair) stats.forEach(s => { if (!pair && s.type === 'candidate-pair' && s.state === 'succeeded' && (s.nominated || s.selected)) pair = s; });
+    if (!pair || !game) return;
+    const l = byId[pair.localCandidateId] || {}, r = byId[pair.remoteCandidateId] || {};
+    const types = [l.candidateType, r.candidateType];
+    const v6 = String(l.address || l.ip || '').includes(':');
+    let path;
+    if (types.includes('relay')) path = '중계 서버';
+    else if (types.every(t => t === 'host')) path = v6 ? 'IPv6 직접 연결' : '같은 네트워크 직접 연결';
+    else path = '홀 펀칭 직접 연결' + (v6 ? ' · IPv6' : '');
+    const rtt = pair.currentRoundTripTime;
+    game.link = `연결: ${path}${rtt != null ? ` · ${Math.round(rtt * 1000)}ms` : ''}`;
+  } catch (e) { /* 통계 미지원 브라우저 */ }
+}
 
 function genCode() {
   let s = '';
@@ -536,6 +624,7 @@ function netSend(msg) {
 
 function netClose() {
   clearTimeout(net.joinTimer);
+  clearInterval(net.linkTimer);
   if (net.conn) { try { net.conn.send({ t: 'bye' }); } catch (e) { /* ignore */ } try { net.conn.close(); } catch (e) { /* ignore */ } }
   if (net.peer) { try { net.peer.destroy(); } catch (e) { /* ignore */ } }
   net.peer = null; net.conn = null; net.role = null;
@@ -555,23 +644,39 @@ function hostRoom(retry) {
   const code = genCode();
   net.role = 'host'; net.code = code;
   showLobby('방 만들기', code, '서버에 연결하는 중...', false);
-  const peer = new Peer(PEER_PREFIX + code, { debug: 1 });
+  startNatProbe();
+  const peer = new Peer(PEER_PREFIX + code, { debug: 1, config: { iceServers: ICE_SERVERS } });
   net.peer = peer;
+  const waitingMsg = '친구에게 방 코드를 알려주세요. 상대를 기다리는 중...';
   peer.on('open', () => {
     if (net.peer !== peer) return;
-    lobbyMsg('친구에게 방 코드를 알려주세요. 상대를 기다리는 중...');
+    lobbyMsg(waitingMsg);
     $('copyBtn').classList.remove('hidden');
   });
   peer.on('connection', conn => {
     if (net.peer !== peer) return;
-    if (net.conn) {
+    if (game) {
       conn.on('open', () => { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 500); });
       return;
     }
+    if (net.conn) { try { net.conn.close(); } catch (e) { /* ignore */ } }
     net.conn = conn;
+    const theirs = conn.metadata && conn.metadata.nat;
+    lobbyMsg('상대가 들어오는 중... 기기끼리 직접 연결하는 중이에요.');
+    if (theirs) netInfo([natText(net.nat), natText({ kind: theirs, v6: !!conn.metadata.v6 }, '상대')].filter(Boolean).join('\n'));
     conn.on('data', onHostData);
-    conn.on('close', () => { if (net.conn === conn) onDisconnect('상대가 나갔어요.'); });
-    conn.on('error', () => { if (net.conn === conn) onDisconnect('연결 오류가 발생했어요.'); });
+    const lost = (msg, lobbyText) => {
+      if (net.conn !== conn) return;
+      if (game) { onDisconnect(msg); return; }
+      net.conn = null;
+      try { conn.close(); } catch (e) { /* ignore */ }
+      lobbyMsg(lobbyText);
+    };
+    conn.on('close', () => lost('상대가 나갔어요.', '상대의 연결이 끊겼어요. 방은 열려 있으니 다시 참여하면 돼요.'));
+    conn.on('error', err => lost('연결 오류가 발생했어요.',
+      err && err.type === 'negotiation-failed'
+        ? p2pFailMsg(net.nat && net.nat.kind, theirs) + ' 방은 그대로 열려 있어요.'
+        : '연결 오류가 발생했어요. 방은 열려 있으니 다시 참여하면 돼요.'));
   });
   peer.on('error', err => {
     if (net.peer !== peer) return;
@@ -609,7 +714,8 @@ function onHostData(d) {
       }
       break;
     case 'bye':
-      onDisconnect('상대가 나갔어요.');
+      if (game) onDisconnect('상대가 나갔어요.');
+      else { net.conn = null; lobbyMsg('상대가 접속을 취소했어요. 계속 기다리는 중...'); }
       break;
   }
 }
@@ -619,8 +725,9 @@ function joinRoom() {
   const code = $('codeInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 4) { menuMsg('방 코드 4자리를 입력하세요.'); return; }
   net.role = 'client'; net.code = code;
-  showLobby('방 참여', code, '방에 연결하는 중...', false);
-  const peer = new Peer({ debug: 1 });
+  showLobby('방 참여', code, '서버에 연결하는 중...', false);
+  const natReady = startNatProbe();
+  const peer = new Peer({ debug: 1, config: { iceServers: ICE_SERVERS } });
   net.peer = peer;
   const fail = msg => {
     if (net.peer !== peer || game) return;
@@ -628,23 +735,32 @@ function joinRoom() {
     showScreen('menu');
     menuMsg(msg);
   };
-  peer.on('open', () => {
+  peer.on('open', async () => {
     if (net.peer !== peer) return;
-    const conn = peer.connect(PEER_PREFIX + code, { reliable: false, serialization: 'json' });
+    lobbyMsg('방을 찾는 중...');
+    const nat = await Promise.race([natReady, new Promise(r => setTimeout(() => r(null), 2500))]);
+    if (net.peer !== peer) return;
+    const conn = peer.connect(PEER_PREFIX + code, {
+      reliable: false, serialization: 'json',
+      metadata: nat ? { nat: nat.kind, v6: nat.v6 } : {},
+    });
     net.conn = conn;
+    conn.on('iceStateChanged', st => {
+      if (!game && net.conn === conn && st === 'checking') lobbyMsg('방을 찾았어요! 기기끼리 직접 연결하는 중...');
+    });
     conn.on('open', () => {
       lobbyMsg('연결됨! 캐릭터 정보를 교환하는 중...');
       conn.send({ t: 'hello', c: selectedChar, v: 1 });
     });
     conn.on('data', onClientData);
-    conn.on('close', () => { if (net.conn === conn) { if (game) onDisconnect('방장과 연결이 끊어졌어요.'); else fail('연결이 끊어졌어요.'); } });
-    conn.on('error', () => fail('연결 오류가 발생했어요.'));
+    conn.on('close', () => { if (net.conn === conn) { if (game) onDisconnect('방장과 연결이 끊어졌어요.'); else fail('연결이 끊어졌어요. 다시 [참여]를 눌러 보세요.'); } });
+    conn.on('error', err => fail(err && err.type === 'negotiation-failed' ? p2pFailMsg(net.nat && net.nat.kind) : '연결 오류가 발생했어요. 다시 [참여]를 눌러 보세요.'));
   });
   peer.on('error', err => {
     if (err.type === 'peer-unavailable') fail('방을 찾을 수 없어요. 코드를 확인하세요.');
     else fail('연결 오류: ' + (err.type || err.message));
   });
-  net.joinTimer = setTimeout(() => fail('연결 시간이 초과됐어요. 같은 Wi-Fi인지 확인해 보세요.'), 20000);
+  net.joinTimer = setTimeout(() => fail(p2pFailMsg(net.nat && net.nat.kind)), 30000);
 }
 
 function onClientData(d) {
@@ -1360,6 +1476,7 @@ function drawHUD(c) {
   c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.55)';
   if (g.code) c.fillText(`방 ${g.code}`, W / 2, 98);
   if (g.mode === 'practice') c.fillText('연습 모드 · vs CPU', W / 2, 98);
+  if (g.link) { c.font = '700 11px sans-serif'; c.fillText(g.link, W / 2, 114); }
 }
 
 function drawPhaseBanner(c) {
@@ -1555,11 +1672,13 @@ function showScreen(name) {
 
 function menuMsg(t) { $('menuMsg').textContent = t || ''; }
 function lobbyMsg(t) { $('lobbyMsg').textContent = t; }
+function netInfo(t) { $('netInfo').textContent = t || ''; }
 
 function showLobby(title, code, msg, copy) {
   $('lobbyTitle').textContent = title;
   $('roomCode').textContent = code;
   lobbyMsg(msg);
+  netInfo('');
   $('copyBtn').classList.toggle('hidden', !copy);
   showScreen('lobby');
 }
@@ -1569,6 +1688,11 @@ async function enterGame() {
   fx.parts.length = fx.slashes.length = fx.texts.length = 0;
   acc = 0;
   showScreen('game');
+  clearInterval(net.linkTimer);
+  if (game && game.mode !== 'practice') {
+    net.linkTimer = setInterval(updateLinkInfo, 2000);
+    setTimeout(updateLinkInfo, 300);
+  }
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* 지원 안 함 */ }
 }
 
