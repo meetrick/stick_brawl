@@ -56,8 +56,8 @@ const CHARACTERS = [
       off: [[5, 10, 18, -0.4], [8, -10, -26, -2.3], [12, 36, 6, 0.5], [16, 30, 12, 0.7]],
       lean: [[7, 0.25], [12, 0.3], [16, 0.2]],
       hits: [
-        { from: 4, to: 7, arm: 'main', dmg: 7, kb: 4, up: 2 },
-        { from: 9, to: 12, arm: 'off', dmg: 8, kb: 6.5, up: 3 },
+        { from: 4, to: 7, arm: 'main', dmg: 8, kb: 4, up: 2 },
+        { from: 9, to: 12, arm: 'off', dmg: 9, kb: 6.5, up: 3 },
       ],
     },
     special: {
@@ -131,7 +131,7 @@ const CHARACTERS = [
       total: 20, lunge: [6, 3],
       main: [[4, -8, -30, -2.6], [8, 36, -4, -0.2], [11, 30, 20, 1.2]],
       lean: [[4, -0.1], [8, 0.2], [11, 0.25]],
-      hits: [{ from: 5, to: 11, arm: 'main', dmg: 11, kb: 7, up: 3 }],
+      hits: [{ from: 5, to: 11, arm: 'main', dmg: 12, kb: 7, up: 3 }],
     },
     special: {
       name: '간웅의 반격', hanja: '奸雄反擊', desc: '받아치기 자세. 자세 중에 공격받으면 흘려내고 즉시 강하게 반격한다',
@@ -234,7 +234,8 @@ function buildMoveKeys(ch, mv) {
   const last = mv.main.length ? mv.main[mv.main.length - 1][3] : i.main[2];
   const endW = i.main[2] + Math.PI * 2 * Math.round((last - i.main[2]) / (Math.PI * 2));
   mv.mainK = [[0, ...i.main], ...mv.main, [mv.total, i.main[0], i.main[1], endW]];
-  mv.offK = mv.off ? [[0, ...i.off], ...mv.off, [mv.total, ...i.off]] : null;
+  const ob = mv.offBase || i.off;
+  mv.offK = mv.off ? [[0, ...ob], ...mv.off, [mv.total, ...ob]] : null;
   mv.leanK = [[0, i.lean], ...mv.lean, [mv.total, i.lean]];
   mv.lunges = !mv.lunge ? [] : Array.isArray(mv.lunge[0]) ? mv.lunge : [mv.lunge];
   mv.lastHitEnd = mv.hits.length ? Math.max(...mv.hits.map(h => h.to)) : mv.roar ? mv.roar.f : mv.counter ? mv.counter[1] : 0;
@@ -256,6 +257,20 @@ const AIR_KICK = {
   legs: [[3, 8, -30], [7, 50, -26], [24, 50, -26]], legBase: [12, -12], tuck: [-6, -30],
   hits: [{ from: 6, to: 22, arm: 'foot', dmg: 8, kb: 8, up: 5, gd: 30 }],
 };
+/* 체술 버튼의 주먹: 무기는 막기 자세로 쥐고 반대 손으로 짧게 지른다. 아주 빨라서 품 안에 들어온 상대를 끊어낸다. */
+const PUNCH = {
+  total: 14, guardArms: true, offPunch: true, lunge: [3, 2.5], main: [],
+  offBase: [6, 14, 0], off: [[2, -2, 6, 0], [5, 40, -6, 0], [8, 38, -6, 0]],
+  lean: [[2, -0.05], [5, 0.22], [8, 0.18]],
+  hits: [{ from: 4, to: 7, arm: 'fist', dmg: 3, kb: 3, up: 1, gd: 10 }],
+};
+/* 양손 무기(창·언월도)는 한 손을 떼고 지르므로 주먹이 늦다. 품 안 약점을 완전히 지우지 않게 한다. */
+const PUNCH_TWO_HANDED = {
+  total: 20, lunge: [6, 2.5],
+  off: [[4, -2, 6, 0], [8, 40, -6, 0], [11, 38, -6, 0]],
+  lean: [[4, -0.05], [8, 0.22], [11, 0.18]],
+  hits: [{ from: 7, to: 10, arm: 'fist', dmg: 3, kb: 3, up: 1, gd: 10 }],
+};
 const COMBO_WINDOW = 18;
 
 for (const ch of [...CHARACTERS, ...SOLDIERS]) {
@@ -263,12 +278,13 @@ for (const ch of [...CHARACTERS, ...SOLDIERS]) {
   buildMoveKeys(ch, ch.special);
   ch.kick = buildMoveKeys(ch, { ...KICK });
   ch.airKick = buildMoveKeys(ch, { ...AIR_KICK });
+  ch.punch = buildMoveKeys(ch, WEAPONS[ch.weapon].grip2 !== null ? { ...PUNCH, ...PUNCH_TWO_HANDED } : { ...PUNCH });
   if (!ch.guard.off) ch.guard.off = ch.idle.off;
   CHAR[ch.id] = ch;
 }
 
-const MOVES = { n: 'attack', s: 'special', k: 'kick', j: 'airKick' };
-const MOVE_CODES = ['n', 's', 'k', 'j'];
+const MOVES = { n: 'attack', s: 'special', k: 'kick', j: 'airKick', p: 'punch' };
+const MOVE_CODES = ['n', 's', 'k', 'j', 'p'];
 const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
 const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, sword: 72, pike: 118, archer: 400, elite: 88 };
@@ -327,7 +343,8 @@ function computePose(p, now) {
   const A = p.af >= 0 ? moveOf(p) : null;
   let m, o, lean;
   if (A && A.guardArms) {
-    m = ch.guard.main.slice(); o = ch.guard.off.slice();
+    m = ch.guard.main.slice();
+    o = A.offPunch ? sampleKeys(A.offK, p.af) : ch.guard.off.slice();
     lean = sampleKeys(A.leanK, p.af)[0];
   } else if (A) {
     m = sampleKeys(A.mainK, p.af);
@@ -362,7 +379,7 @@ function computePose(p, now) {
   const mainArm = ik(sh.x, sh.y, sh.x + m[0], sh.y + m[1], SK.upper, SK.fore, 1);
   const w = m[2];
   let offArm, ow;
-  if (wd.grip2 !== null && p.st !== ST.HIT && p.st !== ST.KO) {
+  if (wd.grip2 !== null && p.st !== ST.HIT && p.st !== ST.KO && !(A && A.offPunch)) {
     ow = w;
     offArm = ik(sh.x, sh.y, mainArm.hx + Math.cos(w) * wd.grip2, mainArm.hy + Math.sin(w) * wd.grip2, SK.upper, SK.fore, 1);
   } else {
@@ -409,6 +426,9 @@ function bladeSeg(p, pose, arm, ox = p.x, oy = p.y) {
   if (arm === 'foot') {
     return { ax: ox + p.f * pose.kf.x, ay: oy + pose.kf.y, bx: ox + p.f * pose.ff.x, by: oy + pose.ff.y, r: 9 * p.ws };
   }
+  if (arm === 'fist') {
+    return { ax: ox + p.f * pose.oe.x, ay: oy + pose.oe.y, bx: ox + p.f * pose.oh.x, by: oy + pose.oh.y, r: 8 * p.ws };
+  }
   const wd = WEAPONS[CHAR[p.c].weapon];
   const hand = arm === 'off' ? pose.oh : pose.mh;
   const w = arm === 'off' ? pose.ow : pose.w;
@@ -446,7 +466,7 @@ function makePlayer(idx, charId, handicapped) {
     x: 0, y: GROUND, vx: 0, vy: 0, f: 1, g: true,
     st: ST.IDLE, af: -1, an: 0, hm: {}, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
-    wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, prevSeg: null,
+    wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, luc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, bu: 0, prevSeg: null,
     rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trail: [], ghosts: [],
   };
   resetPlayer(p);
@@ -460,11 +480,11 @@ function resetPlayer(p) {
   p.vx = p.vy = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
   p.st = ST.IDLE; p.af = -1; p.hm = {}; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
-  p.ad = false; p.bj = p.ba = p.bd = p.bsp = 0; p.prevSeg = null; p.trail.length = 0; p.ghosts.length = 0;
+  p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trail.length = 0; p.ghosts.length = 0;
 }
 
 function newInput() {
-  return { l: false, r: false, j: false, a: false, d: false, s: false, jc: 0, ac: 0, dc: 0, sc: 0 };
+  return { l: false, r: false, j: false, a: false, d: false, s: false, u: false, jc: 0, ac: 0, dc: 0, sc: 0, uc: 0 };
 }
 
 /* ----------------------------- 게임 상태 ----------------------------- */
@@ -538,7 +558,8 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (inp.ac !== p.lac) { p.lac = inp.ac; if (ctrl) p.ba = 8; }
   if (inp.dc !== p.ldc) { p.ldc = inp.dc; if (ctrl) p.bd = 6; }
   if ((inp.sc | 0) !== p.lsc) { p.lsc = inp.sc | 0; if (ctrl) p.bsp = 8; }
-  if (!ctrl) p.bj = p.ba = p.bd = p.bsp = 0;
+  if ((inp.uc | 0) !== p.luc) { p.luc = inp.uc | 0; if (ctrl) p.bu = 8; }
+  if (!ctrl) p.bj = p.ba = p.bd = p.bsp = p.bu = 0;
   if (p.dcd > 0) p.dcd--;
   if (p.inv > 0) p.inv--;
   if (p.fl > 0) p.fl--;
@@ -598,6 +619,15 @@ function updatePlayer(p, inp, opp, ctrl) {
         emit({ k: 'sp', p: p.idx, c: p.c });
       }
     }
+    if (p.af < 0 && free && ctrl && p.bu > 0) {
+      p.bu = 0;
+      const kind = !p.g ? (p.ak ? null : 'j') : dir === toward ? 'k' : 'p';
+      if (kind) {
+        if (kind === 'j') p.ak = true;
+        startMove(p, kind);
+        emit({ k: 'sw', p: p.idx, c: p.c, kick: 1 });
+      }
+    }
     if (p.af < 0 && free && ctrl && (p.ba > 0 || inp.a)) {
       const kind = nextAttackKind(p);
       if (kind) {
@@ -626,6 +656,7 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.ba > 0) p.ba--;
   if (p.bd > 0) p.bd--;
   if (p.bsp > 0) p.bsp--;
+  if (p.bu > 0) p.bu--;
 
   if (p.st === ST.HIT || p.st === ST.KO || p.st === ST.BLOCK) p.vx *= p.g ? 0.85 : 0.99;
   if (!(p.df > 0 && !p.g)) p.vy += GRAVITY;
@@ -684,7 +715,7 @@ function checkHits(att, def) {
     }
     if (!contact) continue;
     const along = wd.from + contact.t * (wd.to * att.ws - wd.from);
-    const weak = h.arm !== 'foot' && wd.tip > 0 && along < wd.tip && att.mv !== 's';
+    const weak = h.arm !== 'foot' && h.arm !== 'fist' && wd.tip > 0 && along < wd.tip && att.mv !== 's';
     const hh = weak ? { ...h, dmg: Math.max(1, Math.round(h.dmg * 0.5)), kb: h.kb * 0.5, up: (h.up ?? 3) * 0.6, weak: true } : h;
     applyHit(att, def, hh, i, contact);
     if (def.st === ST.KO || att.af < 0) return;
@@ -820,6 +851,10 @@ function updateAI(ai, me, opp, inp) {
   inp.l = mv < 0; inp.r = mv > 0;
   if (me.mp >= METER_MAX && me.af < 0 && adx < AI_SP_RANGE[me.c] * me.ws && Math.random() < 0.05) {
     if (me.c !== 'caocao' || (opp.af >= 0 && opp.af < 8)) inp.sc++;
+  }
+  if (me.af < 0 && Math.abs(opp.y - me.y) < 80) {
+    if ((opp.st === ST.GUARD || opp.st === ST.BLOCK) && adx < 85 && Math.random() < 0.1) { inp.l = dir < 0; inp.r = dir > 0; inp.uc++; }
+    else if (adx < 58 && Math.random() < 0.07) { inp.l = inp.r = false; inp.uc++; }
   }
   if (adx < range && me.af < 0 && Math.abs(opp.y - me.y) < 80 && Math.random() < 0.11) inp.ac++;
   if (opp.af >= 0 && opp.af < 10 && adx < 170 && me.dcd <= 0 && Math.random() < 0.05) {
@@ -1510,8 +1545,8 @@ function onHostData(d) {
     case 'i':
       if (game) {
         const inp = game.inputs[1];
-        inp.l = !!d.l; inp.r = !!d.r; inp.j = !!d.j; inp.a = !!d.a; inp.d = !!d.d; inp.s = !!d.s;
-        inp.jc = d.jc | 0; inp.ac = d.ac | 0; inp.dc = d.dc | 0; inp.sc = d.sc | 0;
+        inp.l = !!d.l; inp.r = !!d.r; inp.j = !!d.j; inp.a = !!d.a; inp.d = !!d.d; inp.s = !!d.s; inp.u = !!d.u;
+        inp.jc = d.jc | 0; inp.ac = d.ac | 0; inp.dc = d.dc | 0; inp.sc = d.sc | 0; inp.uc = d.uc | 0;
       }
       break;
     case 'bye':
@@ -1630,9 +1665,9 @@ function onDisconnect(msg) {
 }
 
 /* ----------------------------- 입력 (가상 패드 + 키보드) ----------------------------- */
-const KEYS = ['l', 'r', 'j', 'a', 'd', 's'];
+const KEYS = ['l', 'r', 'j', 'a', 'd', 's', 'u'];
 const localInput = newInput();
-const noKeys = () => ({ l: false, r: false, j: false, a: false, d: false, s: false });
+const noKeys = () => ({ l: false, r: false, j: false, a: false, d: false, s: false, u: false });
 const padHeld = noKeys(), keyHeld = noKeys(), mouseHeld = noKeys();
 let padRects = [];
 
@@ -1641,6 +1676,7 @@ function pressCounter(k) {
   else if (k === 'a') localInput.ac++;
   else if (k === 'd') localInput.dc++;
   else if (k === 's') localInput.sc++;
+  else if (k === 'u') localInput.uc++;
 }
 
 function refreshInput() {
@@ -1705,7 +1741,7 @@ const KEYMAP = {
   ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
   ArrowUp: 'j', KeyW: 'j', Space: 'j',
   KeyJ: 'a', KeyZ: 'a', KeyK: 'd', KeyX: 'd', ShiftLeft: 'd', ShiftRight: 'd',
-  KeyL: 's', KeyC: 's',
+  KeyL: 's', KeyC: 's', KeyI: 'u', KeyV: 'u',
 };
 
 window.addEventListener('keydown', e => {
@@ -2507,7 +2543,7 @@ function drawPhaseBanner(c) {
 function drawControlsHint(c) {
   const lines = [
     '상대 반대쪽 방향을 누르고 있으면 막기 · 맞기 직전에 누르면 튕겨내기',
-    '공격을 이어 누르면 마지막은 발차기(막기 깨기) · 공중에서 공격하면 날아차기',
+    '[체술] 주먹 · 앞+[체술] 발차기(막기 깨기) · 공중 [체술] 날아차기',
     '긴 무기는 품 안으로 파고들면 약해요 · 게이지가 차면 [필살]',
   ];
   c.save();
