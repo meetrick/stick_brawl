@@ -465,6 +465,255 @@ button:disabled {
   transform: translateX(-50%) translateY(1px);
 }
 
+/* ---------- 스토리 모드 ---------- */
+button.story {
+  background: #6a2c8f;
+}
+
+#storyScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+}
+
+.story-head {
+  display: flex;
+  align-items: center;
+  gap: 2vw;
+}
+
+.story-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(16px, 5.5vh, 28px);
+}
+
+#storyTabs {
+  display: flex;
+  gap: 1vw;
+  flex-wrap: wrap;
+}
+
+.story-tab {
+  height: clamp(30px, 9vh, 44px);
+  padding: 0 1em;
+  font-size: clamp(12px, 3.4vh, 16px);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+.story-tab small {
+  margin-left: 0.4em;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.story-tab.on {
+  background: var(--red);
+  color: var(--paper-light);
+}
+
+.story-tab.on small {
+  color: var(--paper-light);
+}
+
+#stageList {
+  display: flex;
+  gap: 1.5vw;
+  flex: 1;
+  min-height: 0;
+}
+
+.stage-card {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.6vh;
+  padding: 2vh 1.6vw;
+  text-align: left;
+  border-radius: 14px;
+  background: rgba(243, 234, 210, 0.85);
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+.stage-no {
+  font-family: var(--serif);
+  color: var(--red);
+  font-size: clamp(12px, 3.6vh, 17px);
+}
+
+.stage-name {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: clamp(16px, 5.4vh, 26px);
+}
+
+.stage-name small {
+  margin-left: 0.4em;
+  font-size: 0.6em;
+  color: var(--ink-soft);
+}
+
+.stage-meta {
+  font-weight: 400;
+  font-size: clamp(11px, 3vh, 14px);
+  color: var(--ink-soft);
+}
+
+.stage-state {
+  margin-top: auto;
+  font-size: clamp(12px, 3.4vh, 16px);
+  color: var(--red);
+}
+
+.stage-card.cleared .stage-state {
+  color: #2e7d3a;
+}
+
+.stage-card > div {
+  position: relative;
+  z-index: 1;
+}
+
+.stage-boss {
+  position: absolute;
+  right: 4%;
+  bottom: 6%;
+  width: 50%;
+  height: 62%;
+  pointer-events: none;
+}
+
+.stage-card.locked {
+  opacity: 0.45;
+}
+
+.stage-card.locked .stage-boss {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.stage-card.locked .stage-state {
+  color: var(--ink-soft);
+}
+
+.story-tip {
+  margin: 0;
+  font-size: clamp(11px, 3vh, 14px);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+#talk {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: max(16vh, env(safe-area-inset-top));
+  cursor: pointer;
+}
+
+.talk-box {
+  width: min(680px, 80vw);
+  padding: 1.6vh 2vw;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: rgba(243, 234, 210, 0.95);
+  box-shadow: 0 5px 0 var(--ink);
+}
+
+#talkName {
+  font-family: var(--serif);
+  font-weight: 900;
+  color: var(--red);
+  font-size: clamp(14px, 4.4vh, 20px);
+}
+
+#talkText {
+  margin-top: 0.6vh;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(14px, 4.6vh, 22px);
+  line-height: 1.45;
+}
+
+.talk-next {
+  margin-top: 0.8vh;
+  text-align: right;
+  font-size: clamp(10px, 2.8vh, 13px);
+  color: var(--ink-soft);
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+#storyResult {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 26, 23, 0.4);
+}
+
+.result-card {
+  min-width: min(520px, 80vw);
+  padding: 3vh 3vw;
+  text-align: center;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: var(--paper-light);
+  box-shadow: 0 6px 0 var(--ink);
+}
+
+.result-card h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(22px, 8vh, 40px);
+  color: var(--red);
+}
+
+#resultSub {
+  margin: 0.6vh 0 1.6vh;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: clamp(12px, 3.4vh, 16px);
+}
+
+#resultStats {
+  display: flex;
+  justify-content: center;
+  gap: 4vw;
+  margin-bottom: 2.4vh;
+}
+
+#resultStats span {
+  display: block;
+  font-size: clamp(11px, 3vh, 13px);
+  color: var(--ink-soft);
+}
+
+#resultStats b {
+  font-family: var(--serif);
+  font-size: clamp(16px, 5vh, 24px);
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.5vw;
+  flex-wrap: wrap;
+}
+
 /* ---------- iOS 홈 화면 추가 안내 ---------- */
 button.pill {
   margin-left: auto;

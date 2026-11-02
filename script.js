@@ -36,6 +36,9 @@ const WEAPONS = {
   serpent:   { from: 50, to: 110, r: 8,  off: 0, grip2: -28, tip: 74 },
   sevenstar: { from: 4,  to: 58,  r: 10, off: 1, grip2: null, tip: 0 },
   spear:     { from: 46, to: 98,  r: 9,  off: 0, grip2: -26, tip: 66 },
+  pike:      { from: 30, to: 86,  r: 7,  off: 0, grip2: -24, tip: 64 },
+  saber:     { from: 4,  to: 50,  r: 9,  off: 1, grip2: null, tip: 0 },
+  bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
 };
 
 /* 키프레임: [frame, handX, handY, weaponAngle] (어깨 기준, 오른쪽을 바라볼 때 좌표) */
@@ -165,6 +168,66 @@ const CHARACTERS = [
   },
 ];
 
+/* 스토리 모드 병졸. 메뉴에는 나오지 않고 CHAR에만 등록된다. 공격 직전 예고 동작(긴 선딜)이 있어 피하기 쉽다. */
+const SABER_IDLE = { main: [18, 12, -1.0], off: [-10, 26, 0], lean: 0 };
+const SABER_GUARD = { main: [14, -4, -1.35], off: [-6, 10, 0], lean: -0.12 };
+const SOLDIERS = [
+  {
+    id: 'sword', name: '도병', hanja: '刀兵', weapon: 'saber', hp: 0.28, speed: 0.78, jump: 0.8, chain: 99,
+    soldier: true, body: '#6b5a45', accent: '#a8322a',
+    idle: SABER_IDLE, guard: SABER_GUARD,
+    attack: {
+      total: 40, lunge: [14, 3],
+      main: [[12, -8, -30, -2.6], [16, 36, -4, -0.2], [19, 30, 20, 1.2]],
+      lean: [[12, -0.15], [16, 0.2], [19, 0.25]],
+      hits: [{ from: 13, to: 19, arm: 'main', dmg: 6, kb: 5, up: 2 }],
+    },
+  },
+  {
+    id: 'pike', name: '창병', hanja: '槍兵', weapon: 'pike', hp: 0.32, speed: 0.72, jump: 0.8, chain: 99,
+    soldier: true, body: '#6b5a45', accent: '#a8322a',
+    idle: { main: [14, 8, -0.25], off: [0, 0, 0], lean: 0 }, guard: { main: [14, -6, -1.45], lean: -0.12 },
+    attack: {
+      total: 46, lunge: [16, 4],
+      main: [[14, -12, 6, -0.08], [18, 40, 10, 0.05], [26, 40, 10, 0.05]],
+      lean: [[14, -0.15], [18, 0.35], [26, 0.35]],
+      hits: [{ from: 16, to: 21, arm: 'main', dmg: 7, kb: 6, up: 2 }],
+    },
+  },
+  {
+    id: 'archer', name: '궁병', hanja: '弓兵', weapon: 'bow', hp: 0.2, speed: 0.8, jump: 0.8, chain: 99,
+    soldier: true, body: '#6b5a45', accent: '#a8322a',
+    idle: { main: [20, 6, -0.3], off: [6, 16, 0], lean: 0 }, guard: { main: [16, -2, -0.4], off: [6, 10, 0], lean: -0.1 },
+    attack: {
+      total: 44, fire: 30,
+      main: [[8, 38, -6, 0], [30, 38, -6, 0], [34, 36, -4, 0]],
+      off: [[8, 34, -6, 0], [26, 4, -8, 0], [30, 4, -8, 0], [33, 24, -4, 0]],
+      lean: [[8, -0.08], [30, -0.1]],
+      hits: [],
+    },
+  },
+  {
+    id: 'elite', name: '적장', hanja: '敵將', weapon: 'saber', hp: 1.0, speed: 0.95, jump: 0.95, chain: 2,
+    soldier: true, elite: true, body: '#6b5a45', accent: '#a8322a',
+    idle: SABER_IDLE, guard: SABER_GUARD,
+    attack: {
+      total: 28, lunge: [8, 4],
+      main: [[6, -8, -30, -2.6], [10, 36, -4, -0.2], [13, 30, 20, 1.2]],
+      lean: [[6, -0.12], [10, 0.2], [13, 0.25]],
+      hits: [{ from: 7, to: 13, arm: 'main', dmg: 12, kb: 8, up: 3 }],
+    },
+  },
+];
+for (const s of SOLDIERS) s.special = { ...s.attack, name: s.name, hanja: s.hanja, desc: '' };
+
+const FACTIONS = {
+  yellow: { name: '황건적', body: '#b8962a', band: '#e8c547' },
+  dong:   { name: '동탁군', body: '#6b2a1e', helm: '#2b2b2b' },
+  yuan:   { name: '원소군', body: '#7d6e48', helm: '#9a7a2a' },
+  wei:    { name: '조조군', body: '#2f4f8f', helm: '#1f1f2a' },
+  shu:    { name: '유비군', body: '#2e7d3a', helm: '#5a3a22' },
+};
+
 const CHAR = {};
 function buildMoveKeys(ch, mv) {
   const i = ch.idle;
@@ -195,7 +258,7 @@ const AIR_KICK = {
 };
 const COMBO_WINDOW = 18;
 
-for (const ch of CHARACTERS) {
+for (const ch of [...CHARACTERS, ...SOLDIERS]) {
   buildMoveKeys(ch, ch.attack);
   buildMoveKeys(ch, ch.special);
   ch.kick = buildMoveKeys(ch, { ...KICK });
@@ -208,8 +271,8 @@ const MOVES = { n: 'attack', s: 'special', k: 'kick', j: 'airKick' };
 const MOVE_CODES = ['n', 's', 'k', 'j'];
 const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
-const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128 };
-const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170 };
+const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, sword: 72, pike: 118, archer: 400, elite: 88 };
+const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170, sword: 0, pike: 0, archer: 0, elite: 0 };
 
 /* ----------------------------- 유틸 ----------------------------- */
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -381,7 +444,7 @@ function makePlayer(idx, charId, handicapped) {
     idx, c: ch.id, maxHp, hp: maxHp, hc: !!handicapped,
     ws: handicapped ? 1.3 : 1, hs: handicapped ? 0.8 : 1,
     x: 0, y: GROUND, vx: 0, vy: 0, f: 1, g: true,
-    st: ST.IDLE, af: -1, an: 0, hm: 0, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
+    st: ST.IDLE, af: -1, an: 0, hm: {}, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, prevSeg: null,
     rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trail: [], ghosts: [],
@@ -395,7 +458,7 @@ function resetPlayer(p) {
   p.y = p.ry = GROUND;
   p.f = p.idx === 0 ? 1 : -1;
   p.vx = p.vy = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
-  p.st = ST.IDLE; p.af = -1; p.hm = 0; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
+  p.st = ST.IDLE; p.af = -1; p.hm = {}; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
   p.ad = false; p.bj = p.ba = p.bd = p.bsp = 0; p.prevSeg = null; p.trail.length = 0; p.ghosts.length = 0;
 }
@@ -456,7 +519,7 @@ function nextRound() {
 
 function startMove(p, kind) {
   const mv = CHAR[p.c][MOVES[kind]];
-  p.mv = kind; p.af = 0; p.an++; p.hm = 0; p.ba = 0; p.prevSeg = null;
+  p.mv = kind; p.af = 0; p.an++; p.hm = {}; p.ba = 0; p.prevSeg = null;
   if (mv.inv) p.inv = Math.max(p.inv, mv.inv);
 }
 
@@ -503,6 +566,7 @@ function updatePlayer(p, inp, opp, ctrl) {
       p.af++;
       if (p.g) for (const [f, v] of mv.lunges) if (p.af === f) p.vx = p.f * v * ch.speed;
       if (mv.roar && p.af === mv.roar.f) doRoar(p, opp);
+      if (mv.fire && p.af === mv.fire) fireArrow(p);
       if (mv.dive && p.af === mv.dive[0]) { p.vx = p.f * mv.dive[1]; p.vy = Math.max(p.vy, mv.dive[2]); }
       if (p.af >= mv.total) {
         if (p.mv === 'n' || p.mv === 'k') p.cw = COMBO_WINDOW;
@@ -603,7 +667,7 @@ function checkHits(att, def) {
   let pose = null;
   for (let i = 0; i < hits.length; i++) {
     const h = hits[i];
-    if (att.af < h.from || att.af > h.to || (att.hm & (1 << i))) continue;
+    if (att.af < h.from || att.af > h.to || ((att.hm[def.idx] || 0) & (1 << i))) continue;
     pose = pose || computePose(att, 0);
     const cur = bladeSeg(att, pose, h.arm);
     const prev = att.prevSeg ? att.prevSeg[h.arm] : null;
@@ -628,18 +692,19 @@ function checkHits(att, def) {
 }
 
 function applyHit(att, def, h, i, pt) {
-  att.hm |= 1 << i;
+  att.hm[def.idx] = (att.hm[def.idx] || 0) | (1 << i);
   const dmv = def.af >= 0 ? moveOf(def) : null;
   if (dmv && dmv.counter && def.af >= dmv.counter[0] && def.af <= dmv.counter[1]) { triggerCounter(def, att); return; }
 
   const fromFront = def.f === (att.x >= def.x ? 1 : -1);
-  const guarding = def.g && def.af < 0 && def.df <= 0 && def.hit <= 0 && fromFront && (def.st === ST.BLOCK || def.backT > 0);
+  const guarding = !def.noGuard && def.g && def.af < 0 && def.df <= 0 && def.hit <= 0 && fromFront && (def.st === ST.BLOCK || def.backT > 0);
   if (guarding && def.st !== ST.BLOCK && def.backT <= PARRY_WINDOW) { parry(att, def, pt); return; }
   if (guarding) { block(att, def, h, pt); return; }
   damage(att, def, h, pt);
 }
 
 function damage(att, def, h, pt) {
+  if (att.dmgMul) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * att.dmgMul)) };
   const g = game, dmv = def.af >= 0 ? moveOf(def) : null;
   const dir = att.x <= def.x ? 1 : -1;
   def.hp = Math.max(0, def.hp - h.dmg);
@@ -658,10 +723,14 @@ function damage(att, def, h, pt) {
     def.st = ST.HIT;
   }
   if (def.x <= 34 || def.x >= W - 34) att.vx -= dir * h.kb * 0.7;
-  g.hitstop = h.dmg >= 18 ? 8 : 4;
-  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: h.dmg, t: def.idx, hv: h.dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0 });
+  g.hitstop = Math.max(g.hitstop, def.grunt ? 2 : h.dmg >= 18 ? 8 : 4);
+  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: h.dmg, t: def.idx, hv: h.dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0, g: def.grunt ? 1 : 0 });
 
-  if (def.hp <= 0) {
+  if (def.hp <= 0 && g.mode === 'story') {
+    def.st = ST.KO; def.af = -1; def.mv = 'n'; def.df = 0; def.hit = 0; def.kt = 0; def.dz = 0;
+    def.vx = dir * (def.grunt ? 9 : 11); def.vy = def.grunt ? -8 : -11; def.g = false;
+    onStoryKO(def, att);
+  } else if (def.hp <= 0) {
     def.st = ST.KO; def.af = -1; def.mv = 'n'; def.df = 0; def.hit = 0; def.kt = 0; def.dz = 0;
     def.vx = dir * 11; def.vy = -11; def.g = false;
     att.wins++;
@@ -708,7 +777,7 @@ function triggerCounter(cao, att) {
   cao.f = att.x >= cao.x ? 1 : -1;
   startMove(cao, 'n');
   cao.af = 5;
-  cao.hm = (1 << ch.attack.hits.length) - 1;
+  cao.hm = { [att.idx]: (1 << ch.attack.hits.length) - 1 };
   cao.inv = 16;
   cao.vx = cao.f * 6;
   att.af = -1; att.mv = 'n';
@@ -719,10 +788,13 @@ function triggerCounter(cao, att) {
 function doRoar(p, opp) {
   const R = CHAR[p.c].special.roar;
   emit({ k: 'roar', x: r1(p.x + p.f * 10), y: r1(p.y - 100), t: p.idx });
-  if (opp.st === ST.KO || opp.inv > 0) return;
-  if (Math.abs(opp.x - p.x) > R.range * p.ws || Math.abs(opp.y - p.y) > 160) return;
-  damage(p, opp, { dmg: R.dmg, kb: 2, up: 0 }, { x: opp.x, y: opp.y - 70 });
-  if (opp.st !== ST.KO) { opp.hit = R.stun; opp.dz = R.stun; opp.vx *= 0.3; }
+  const targets = game.mode === 'story' && p.idx === 0 ? storyFoes() : [opp];
+  for (const t of targets) {
+    if (t.st === ST.KO || t.inv > 0) continue;
+    if (Math.abs(t.x - p.x) > R.range * p.ws || Math.abs(t.y - p.y) > 160) continue;
+    damage(p, t, { dmg: R.dmg, kb: 2, up: 0 }, { x: t.x, y: t.y - 70 });
+    if (t.st !== ST.KO) { t.hit = R.stun; t.dz = R.stun; t.vx *= 0.3; }
+  }
 }
 
 /* ----------------------------- 연습 모드 CPU ----------------------------- */
@@ -754,6 +826,491 @@ function updateAI(ai, me, opp, inp) {
     inp.l = dir > 0; inp.r = dir < 0; inp.dc++;
   }
   if (Math.random() < 0.006 || (opp.y < me.y - 60 && Math.random() < 0.03)) inp.jc++;
+}
+
+/* ----------------------------- 스토리 모드 -----------------------------
+ * 웨이브: [[병졸종류, 수], ...]. boss.c는 영웅 id 또는 'elite'(이름 있는 적장). max는 동시에 화면에 있는 적 수.
+ */
+const STORIES = {
+  liubei: {
+    title: '인의의 길', hanja: '仁義之道', stages: [
+      {
+        name: '황건적 토벌', hanja: '黃巾討伐', faction: 'yellow', max: 4,
+        waves: [[['sword', 5]], [['sword', 3], ['pike', 3]]],
+        boss: { c: 'zhangfei', hp: 1.8, with: [['sword', 2]] },
+        intro: [['유비', '황건적이 마을을 어지럽히고 있다. 백성을 지키러 가자!']],
+        bossTalk: [['장비', '하하하! 네가 그 소문난 유비냐? 내 장팔사모부터 받아라!'], ['유비', '좋다! 실력으로 보여주마!']],
+        outro: [['장비', '졌소! 오늘부터 형님으로 모시겠소!'], ['유비', '함께 천하의 백성을 구하자, 익덕!']],
+      },
+      {
+        name: '호뢰관 전투', hanja: '虎牢關', faction: 'dong', max: 5,
+        waves: [[['sword', 4], ['archer', 2]], [['pike', 4], ['archer', 2], ['sword', 2]]],
+        boss: { c: 'elite', name: '화웅', hanja: '華雄', hp: 1.6, with: [['pike', 2], ['archer', 1]] },
+        intro: [['유비', '동탁의 군대가 호뢰관을 막고 있다. 화살을 조심하라!']],
+        bossTalk: [['화웅', '감히 이 화웅의 관문을 넘보느냐!']],
+        outro: [['유비', '관문이 열렸다! 연합군이여, 진격하라!']],
+      },
+      {
+        name: '서주 혈전', hanja: '徐州血戰', faction: 'wei', max: 6,
+        waves: [[['sword', 4], ['pike', 3]], [['archer', 3], ['sword', 3], ['pike', 2]], [['pike', 4], ['archer', 3]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['sword', 2], ['archer', 2]] },
+        intro: [['유비', '조조의 대군이 서주로 몰려온다. 물러설 수 없다!']],
+        bossTalk: [['조조', '유비, 천하의 영웅은 그대와 나뿐이오. 내 밑으로 오시오!'], ['유비', '백성을 버리는 패도는 따를 수 없소!']],
+        outro: [['조조', '흥, 오늘은 물러나 주지. 하지만 다음엔 다를 것이오.'], ['유비', '인의로 세상을 바로 세우리라!']],
+      },
+    ],
+  },
+  guanyu: {
+    title: '의리의 길', hanja: '忠義之道', stages: [
+      {
+        name: '사수관', hanja: '汜水關', faction: 'dong', max: 4,
+        waves: [[['sword', 4], ['pike', 2]], [['pike', 3], ['archer', 2], ['sword', 2]]],
+        boss: { c: 'elite', name: '화웅', hanja: '華雄', hp: 1.6, with: [['sword', 2]] },
+        intro: [['관우', '술이 식기 전에 돌아오겠소.']],
+        bossTalk: [['화웅', '이름 없는 궁수 따위가 감히!'], ['관우', '내 청룡언월도가 대답하리라.']],
+        outro: [['관우', '술이 아직 따뜻하군.']],
+      },
+      {
+        name: '백마 전투', hanja: '白馬', faction: 'yuan', max: 5,
+        waves: [[['sword', 3], ['archer', 3]], [['pike', 4], ['sword', 3]]],
+        boss: { c: 'elite', name: '안량', hanja: '顔良', hp: 1.8, with: [['pike', 2], ['archer', 1]] },
+        intro: [['관우', '원소의 맹장 안량이 백마를 포위했다. 단숨에 베어 버리겠다.']],
+        bossTalk: [['안량', '누가 감히 내 앞을 막느냐!']],
+        outro: [['관우', '조조에게 진 빚은 이것으로 갚았다.']],
+      },
+      {
+        name: '오관돌파', hanja: '五關斬將', faction: 'wei', max: 6,
+        waves: [[['pike', 4], ['sword', 2]], [['archer', 4], ['sword', 3]], [['sword', 3], ['pike', 3], ['archer', 2]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['sword', 2], ['archer', 2]] },
+        intro: [['관우', '형님께 돌아가는 길, 다섯 관문이 막아서도 멈추지 않으리.']],
+        bossTalk: [['조조', '운장, 정말 떠나겠소? 그렇다면 실력으로 보여주시오!'], ['관우', '승상의 은혜는 잊지 않겠소. 허나 의리를 저버릴 수는 없소!']],
+        outro: [['조조', '…가시오. 그대 같은 의인을 막을 수는 없구려.'], ['관우', '형님, 지금 갑니다!']],
+      },
+    ],
+  },
+  zhangfei: {
+    title: '호걸의 길', hanja: '豪傑之道', stages: [
+      {
+        name: '탁현의 들판', hanja: '涿縣', faction: 'yellow', max: 4,
+        waves: [[['sword', 5]], [['pike', 3], ['sword', 3]]],
+        boss: { c: 'guanyu', hp: 1.7, with: [['sword', 2]] },
+        intro: [['장비', '황건적 놈들! 이 장비 님이 상대해 주마!']],
+        bossTalk: [['관우', '힘만 믿고 날뛰는 자로군. 한 수 겨뤄 보겠소?'], ['장비', '좋소! 수염 긴 양반, 각오하시오!']],
+        outro: [['관우', '대단한 힘이오. 유비 형님께 함께 가지 않겠소?'], ['장비', '하하! 좋소, 오늘부터 형제요!']],
+      },
+      {
+        name: '서주성 수비', hanja: '徐州城', faction: 'yuan', max: 5,
+        waves: [[['sword', 4], ['archer', 2]], [['pike', 3], ['archer', 3], ['sword', 2]]],
+        boss: { c: 'elite', name: '문추', hanja: '文醜', hp: 1.8, with: [['sword', 2], ['archer', 1]] },
+        intro: [['장비', '성을 지키라 하셨으니, 한 놈도 못 들어온다!']],
+        bossTalk: [['문추', '장비라는 놈이 네놈이냐!'], ['장비', '그래, 내가 장익덕이다!']],
+        outro: [['장비', '하하하! 다음은 누구냐!']],
+      },
+      {
+        name: '장판교', hanja: '長坂橋', faction: 'wei', max: 6,
+        waves: [[['sword', 4], ['pike', 3]], [['pike', 4], ['archer', 3]], [['sword', 4], ['archer', 3], ['pike', 2]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['pike', 2], ['archer', 2]] },
+        intro: [['장비', '나는 연인 장익덕이다! 누가 나와 죽기로 싸우겠느냐!']],
+        bossTalk: [['조조', '저 고함 소리… 장비로구나. 내가 직접 상대하마!']],
+        outro: [['조조', '물러나라! 장비의 함정일지도 모른다!'], ['장비', '하하하! 조조가 꽁무니를 빼는구나!']],
+      },
+    ],
+  },
+  caocao: {
+    title: '패왕의 길', hanja: '霸王之道', stages: [
+      {
+        name: '영천 토벌', hanja: '潁川', faction: 'yellow', max: 4,
+        waves: [[['sword', 4], ['pike', 2]], [['sword', 3], ['pike', 2], ['archer', 2]]],
+        boss: { c: 'elite', name: '장각', hanja: '張角', hp: 1.6, with: [['sword', 2]] },
+        intro: [['조조', '난세를 끝낼 자는 바로 나다. 황건적부터 쓸어버려라!']],
+        bossTalk: [['장각', '푸른 하늘은 이미 죽었다!'], ['조조', '하늘의 뜻은 내가 정한다.']],
+        outro: [['조조', '난세의 간웅이라… 좋은 칭호로군.']],
+      },
+      {
+        name: '서주 공략', hanja: '徐州攻略', faction: 'shu', max: 5,
+        waves: [[['sword', 4], ['pike', 2]], [['archer', 3], ['pike', 3], ['sword', 2]]],
+        boss: { c: 'zhangfei', hp: 1.9, with: [['sword', 2], ['archer', 1]] },
+        intro: [['조조', '유비가 서주를 차지했다. 기회를 주지 않겠다.']],
+        bossTalk: [['장비', '조조 이놈! 형님의 성에 발을 들이다니!'], ['조조', '용맹하구나. 그 용맹, 내 아래에서 쓰지 않겠느냐?']],
+        outro: [['장비', '큭… 다음엔 반드시 이긴다!'], ['조조', '유비에겐 아까운 장수로군.']],
+      },
+      {
+        name: '장판 추격', hanja: '長坂追擊', faction: 'shu', max: 6,
+        waves: [[['sword', 4], ['pike', 3]], [['archer', 3], ['sword', 4]], [['pike', 4], ['archer', 3], ['sword', 2]]],
+        boss: { c: 'zhaoyun', hp: 2.0, with: [['sword', 2], ['pike', 1]] },
+        intro: [['조조', '유비의 백성들 사이로 홀로 달리는 장수가 있다고?']],
+        bossTalk: [['조자룡', '나는 상산의 조자룡이다! 길을 비켜라!'], ['조조', '저토록 뛰어난 장수를… 꼭 내 사람으로 만들고 싶구나!']],
+        outro: [['조조', '놓쳤구나. 허나 저런 장수를 보았으니 그것으로 족하다.']],
+      },
+    ],
+  },
+  zhaoyun: {
+    title: '충의의 길', hanja: '忠勇之道', stages: [
+      {
+        name: '반하 전투', hanja: '磐河', faction: 'yuan', max: 4,
+        waves: [[['sword', 4], ['archer', 2]], [['pike', 3], ['sword', 3]]],
+        boss: { c: 'elite', name: '문추', hanja: '文醜', hp: 1.6, with: [['sword', 2]] },
+        intro: [['조자룡', '공손찬 장군을 구해야 한다!']],
+        bossTalk: [['문추', '애송이가 감히!'], ['조자룡', '상산의 조자룡, 여기 있다!']],
+        outro: [['조자룡', '장군, 무사하십니까!']],
+      },
+      {
+        name: '장판파 단기돌파', hanja: '長坂坡', faction: 'wei', max: 6,
+        waves: [[['sword', 5], ['pike', 2]], [['pike', 4], ['archer', 3]], [['sword', 4], ['archer', 2], ['pike', 3]]],
+        boss: { c: 'elite', name: '하후은', hanja: '夏侯恩', hp: 1.7, with: [['pike', 2], ['archer', 1]] },
+        intro: [['조자룡', '주공의 아드님을 찾아야 한다. 백만 대군이라도 뚫고 가겠다!']],
+        bossTalk: [['하후은', '이 청강검 앞에 무릎 꿇어라!']],
+        outro: [['조자룡', '아두 공자님을 찾았다! 이제 돌아간다!']],
+      },
+      {
+        name: '장판파 탈출', hanja: '七進七出', faction: 'wei', max: 6,
+        waves: [[['pike', 4], ['sword', 3]], [['archer', 4], ['sword', 4]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['sword', 2], ['archer', 2]] },
+        intro: [['조자룡', '공자님을 품에 안고… 반드시 주공께 돌아간다!']],
+        bossTalk: [['조조', '과연 명불허전! 내가 직접 시험해 보마!'], ['조자룡', '누구도 이 길을 막을 수 없다!']],
+        outro: [['조조', '칠진칠출… 저런 장수가 유비에게 있다니.'], ['조자룡', '주공! 공자님은 무사하십니다!']],
+      },
+    ],
+  },
+};
+const STORY_KEY = 'sb_story_v1';
+const STORY_HP_MUL = 2.0, STORY_BOSS_HP = 0.75, STORY_BOSS_DMG = 0.75;
+const MAX_ENGAGED = 2;
+
+function storyProgress() {
+  try { return JSON.parse(localStorage.getItem(STORY_KEY)) || {}; } catch (e) { return {}; }
+}
+
+function saveStoryClear(c, idx, rec) {
+  const all = storyProgress();
+  const e = all[c] || { cleared: 0, best: {} };
+  e.cleared = Math.max(e.cleared, idx + 1);
+  const b = e.best[idx];
+  if (!b || rec.time < b.time) e.best[idx] = rec;
+  all[c] = e;
+  try { localStorage.setItem(STORY_KEY, JSON.stringify(all)); } catch (err) { /* 저장 불가 */ }
+}
+
+const storyFoes = () => game.players.filter(p => p.idx !== 0 && p.st !== ST.KO && !p.gone);
+
+function startStory(charId, stageIdx) {
+  const st = STORIES[charId].stages[stageIdx];
+  const hc = $('handicap').checked;
+  game = {
+    mode: 'story', me: 0, code: '', handicap: hc,
+    players: [], phase: PHASE.FIGHT, pt: 0, round: 1, frame: 0, hitstop: 0, winner: -1,
+    inputs: [newInput()], pending: [], lastF: -1, seen: new Set(), ai: null, lastRecv: performance.now(),
+    projs: [], items: [],
+    story: {
+      c: charId, idx: stageIdx, st, wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
+      phase: 'talk', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
+    },
+  };
+  const me = makePlayer(0, charId, hc);
+  me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * STORY_HP_MUL);
+  me.x = me.rx = W * 0.35;
+  game.players.push(me);
+  enterGame();
+  storyTalk(st.intro, () => nextWave());
+}
+
+function storyBanner(text, sub, col = PAPER_LIGHT) {
+  game.story.banner = { text, sub, col, t0: game.frame };
+}
+
+function nextWave() {
+  const g = game, S = g.story;
+  S.wave++;
+  S.phase = 'fight';
+  const queue = [];
+  for (const [type, n] of S.st.waves[S.wave]) for (let i = 0; i < n; i++) queue.push(type);
+  for (let i = queue.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [queue[i], queue[j]] = [queue[j], queue[i]]; }
+  S.queue = queue; S.spawnT = 30;
+  const me = g.players[0];
+  if (S.wave > 0) storyHeal(0.2);
+  storyBanner(`第${hanNum(S.wave + 1)}陣`, `제 ${S.wave + 1}진 · ${FACTIONS[S.st.faction].name}`);
+}
+
+function storyHeal(frac) {
+  const me = game.players[0];
+  const heal = Math.min(me.maxHp - me.hp, Math.round(me.maxHp * frac));
+  if (heal <= 0) return;
+  me.hp += heal;
+  emit({ k: 'heal', x: r1(me.x), y: r1(me.y - 130), d: heal });
+}
+
+function spawnEnemy(type, opts = {}) {
+  const g = game, S = g.story, me = g.players[0];
+  S.side = -S.side;
+  let x = S.side > 0 ? W - 30 : 30;
+  if (Math.abs(x - me.x) < 140) x = W - x;
+  const e = makePlayer(S.nextIdx++, type, false);
+  const ch = CHAR[type], fac = FACTIONS[S.st.faction];
+  e.x = e.rx = x; e.f = x > me.x ? -1 : 1;
+  e.inp = newInput();
+  e.ai = { t: 0, mode: 'approach', cd: 30 + Math.random() * 50 };
+  e.inv = 20;
+  if (ch.soldier) {
+    e.body = fac.body; e.helm = fac.helm; e.band = fac.band;
+    e.grunt = !ch.elite;
+    e.noGuard = !ch.elite;
+  }
+  Object.assign(e, opts);
+  g.players.push(e);
+  return e;
+}
+
+function spawnBoss() {
+  const S = game.story, b = S.st.boss;
+  const e = spawnEnemy(b.c, { isBoss: true, bossName: b.name, bossHanja: b.hanja, dmgMul: STORY_BOSS_DMG });
+  e.maxHp = e.hp = e.hpLag = Math.round(e.maxHp * b.hp * STORY_BOSS_HP);
+  storyHeal(0.3);
+  e.mp = 30;
+  e.grunt = false; e.noGuard = false;
+  S.boss = e;
+  const queue = [];
+  for (const [type, n] of b.with || []) for (let i = 0; i < n; i++) queue.push(type);
+  S.queue = queue; S.spawnT = 120;
+  const name = fighterName(e);
+  storyBanner('적장 출현!', `${name.hanja} ${name.name}`, '#e0463a');
+}
+
+function fighterName(p) {
+  const ch = CHAR[p.c];
+  return { name: p.bossName || ch.name, hanja: p.bossHanja || ch.hanja };
+}
+
+function storyTalk(lines, done) {
+  const S = game.story;
+  S.phase = 'talk';
+  S.talk = { lines: lines || [], i: 0, done };
+  showTalkLine();
+}
+
+function showTalkLine() {
+  const S = game && game.story;
+  if (!S || !S.talk) return;
+  const line = S.talk.lines[S.talk.i];
+  if (!line) {
+    const done = S.talk.done;
+    S.talk = null;
+    $('talk').classList.add('hidden');
+    if (done) done();
+    return;
+  }
+  $('talkName').textContent = line[0];
+  $('talkText').textContent = line[1];
+  $('talk').classList.remove('hidden');
+}
+
+function advanceTalk() {
+  const S = game && game.story;
+  if (!S || !S.talk) return;
+  S.talk.i++;
+  showTalkLine();
+}
+
+function onStoryKO(def, att) {
+  const g = game, S = g.story;
+  if (def.idx === 0) {
+    S.phase = 'fail'; S.phaseT = 0; g.hitstop = 16;
+    emit({ k: 'ko', t: 0 });
+    return;
+  }
+  S.kills++;
+  emit({ k: def === S.boss ? 'ko' : 'gko', x: r1(def.x), y: r1(def.y - 60), t: def.idx });
+  if (def.grunt && Math.random() < 0.15) g.items.push({ x: def.x, y: GROUND - 10, life: 600 });
+  if (def === S.boss) {
+    S.phase = 'clear'; S.phaseT = 0; g.hitstop = 20;
+    for (const e of storyFoes()) e.flee = true;
+  }
+}
+
+function storyStep() {
+  const g = game, S = g.story;
+  g.frame++;
+  if (S.phase === 'talk' || S.phase === 'result') return;
+  if (g.hitstop > 0) { g.hitstop--; return; }
+  g.pt++;
+  const me = g.players[0];
+  const fighting = S.phase === 'fight' && me.st !== ST.KO;
+  if (fighting) S.time++;
+
+  if (S.phase === 'fight' && S.queue.length && storyFoes().length < S.st.max && --S.spawnT <= 0) {
+    spawnEnemy(S.queue.shift());
+    S.spawnT = 45;
+  }
+  if (g.frame % 20 === 0) {
+    const melee = storyFoes().filter(e => e.grunt && e.c !== 'archer' && !e.flee);
+    melee.sort((a, b) => Math.abs(a.x - me.x) - Math.abs(b.x - me.x));
+    S.engaged = new Set(melee.slice(0, MAX_ENGAGED).map(e => e.idx));
+  }
+
+  const enemies = g.players.filter(p => p.idx !== 0);
+  for (const e of enemies) enemyAI(e, me, fighting);
+
+  const foes = storyFoes();
+  let target = null, best = Infinity;
+  for (const e of foes) { const d = Math.abs(e.x - me.x) + (e.flee ? 1000 : 0); if (d < best) { best = d; target = e; } }
+  const hpBefore = me.hp;
+  updatePlayer(me, g.inputs[0], target || { x: me.x + me.f * 400, y: me.y, st: ST.IDLE }, fighting);
+  for (const e of enemies) updatePlayer(e, e.inp, me, fighting || !!e.flee);
+
+  for (const e of enemies) separate(me, e);
+  for (let i = 0; i < enemies.length; i++) for (let j = i + 1; j < enemies.length; j++) separateSoft(enemies[i], enemies[j]);
+
+  if (S.phase === 'fight') {
+    for (const e of enemies) {
+      if (e.gone) continue;
+      checkHits(me, e);
+      if (me.st !== ST.KO) checkHits(e, me);
+    }
+  }
+  updateProjectiles(me);
+  updateItems(me);
+  if (me.hp < hpBefore) S.dmgTaken += hpBefore - me.hp;
+  for (const p of g.players) storePrevSeg(p);
+  g.players = g.players.filter(p => p.idx === 0 || !(p.gone || (p.st === ST.KO && p.kt > 70)));
+
+  if (S.phase === 'fight' && !S.queue.length && storyFoes().length === 0) {
+    if (S.wave < S.st.waves.length - 1) nextWave();
+    else if (!S.bossSpawned) {
+      S.bossSpawned = true;
+      spawnBoss();
+      storyTalk(S.st.bossTalk, () => { S.phase = 'fight'; });
+    }
+  }
+  if (S.phase === 'clear' || S.phase === 'fail') {
+    S.phaseT++;
+    if (S.phaseT === 130) {
+      if (S.phase === 'clear') storyTalk(S.st.outro, () => showStoryResult(true));
+      else showStoryResult(false);
+    }
+  }
+  g.pending.length = 0;
+}
+
+function separateSoft(a, b) {
+  if (a.st === ST.KO || b.st === ST.KO || Math.abs(a.y - b.y) >= 90) return;
+  const dx = b.x - a.x, min = 24;
+  if (Math.abs(dx) >= min) return;
+  const s = dx >= 0 ? 1 : -1, push = (min - Math.abs(dx)) / 4;
+  a.x = clamp(a.x - s * push, 24, W - 24);
+  b.x = clamp(b.x + s * push, 24, W - 24);
+}
+
+function enemyAI(e, me, fighting) {
+  const inp = e.inp;
+  inp.l = inp.r = inp.a = false;
+  if (e.st === ST.KO || !fighting && !e.flee) return;
+  const dx = me.x - e.x, adx = Math.abs(dx), dir = dx >= 0 ? 1 : -1;
+  if (e.flee) {
+    const out = e.x < W / 2 ? -1 : 1;
+    inp.l = out < 0; inp.r = out > 0;
+    if (e.x <= 26 || e.x >= W - 26) e.gone = true;
+    return;
+  }
+  if (e.isBoss || !e.grunt) { updateAI(e.ai, e, me, inp); return; }
+  if (e.ai.cd > 0) e.ai.cd--;
+  let mv = 0;
+  if (e.c === 'archer') {
+    const wallBehind = (dir > 0 && e.x < 60) || (dir < 0 && e.x > W - 60);
+    if (adx < 170 && !wallBehind) mv = -dir;
+    else if (adx > 470) mv = dir;
+    if (e.af < 0 && e.ai.cd <= 0 && adx > 90 && adx < 560 && Math.abs(me.y - e.y) < 60) { inp.ac++; e.ai.cd = 80 + Math.random() * 70; }
+  } else if (game.story.engaged.has(e.idx)) {
+    const range = AI_RANGE[e.c];
+    if (adx > range * 0.8) mv = dir;
+    else if (e.af < 0 && e.ai.cd <= 0 && Math.abs(me.y - e.y) < 70) { inp.ac++; e.ai.cd = 55 + Math.random() * 50; }
+  } else {
+    const want = 190 + (e.idx % 3) * 35;
+    if (adx < want - 30) mv = -dir;
+    else if (adx > want + 40) mv = dir;
+  }
+  inp.l = mv < 0; inp.r = mv > 0;
+}
+
+function fireArrow(p) {
+  if (!game.projs) return;
+  game.projs.push({ x: p.x + p.f * 34, y: p.y - 96, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
+  emit({ k: 'shoot', p: p.idx });
+}
+
+function updateProjectiles(me) {
+  const g = game;
+  let cut = null;
+  if (me.af >= 0 && me.st === ST.ATK) {
+    const mv = moveOf(me), active = mv.hits.filter(h => me.af >= h.from && me.af <= h.to);
+    if (active.length) {
+      const pose = computePose(me, 0);
+      cut = active.map(h => bladeSeg(me, pose, h.arm));
+    }
+  }
+  for (const a of g.projs) {
+    a.x += a.vx; a.y += a.vy; a.vy += 0.03; a.life--;
+    if (cut && cut.some(s => distToSeg(a.x, a.y, s) < s.r + 8)) {
+      a.dead = true;
+      emit({ k: 'deflect', x: r1(a.x), y: r1(a.y) });
+      continue;
+    }
+    if (me.st !== ST.KO && me.inv <= 0) {
+      const hb = hurtbox(me);
+      if (a.x > hb.x0 - 4 && a.x < hb.x1 + 4 && a.y > hb.y0 && a.y < hb.y1) {
+        a.dead = true;
+        const fromFront = me.f === (a.vx < 0 ? 1 : -1);
+        const guarding = me.g && me.af < 0 && me.df <= 0 && me.hit <= 0 && fromFront && (me.st === ST.BLOCK || me.backT > 0);
+        if (guarding) {
+          me.gd -= 8;
+          emit({ k: 'block', x: r1(a.x), y: r1(a.y), d: 0, t: 0 });
+        } else {
+          damage(a.owner, me, { dmg: a.dmg, kb: 3, up: 2 }, { x: a.x, y: a.y });
+        }
+        continue;
+      }
+    }
+    if (a.x < -40 || a.x > W + 40 || a.y > GROUND || a.life <= 0) a.dead = true;
+  }
+  g.projs = g.projs.filter(a => !a.dead);
+}
+
+function distToSeg(x, y, s) {
+  const dx = s.bx - s.ax, dy = s.by - s.ay, l2 = dx * dx + dy * dy || 1;
+  const t = clamp(((x - s.ax) * dx + (y - s.ay) * dy) / l2, 0, 1);
+  return Math.hypot(x - (s.ax + dx * t), y - (s.ay + dy * t));
+}
+
+function updateItems(me) {
+  const g = game;
+  for (const it of g.items) {
+    it.life--;
+    if (me.st !== ST.KO && Math.abs(me.x - it.x) < 30 && me.y > GROUND - 60) {
+      it.dead = true;
+      const heal = 18;
+      me.hp = Math.min(me.maxHp, me.hp + heal);
+      emit({ k: 'heal', x: r1(it.x), y: r1(it.y - 40), d: heal });
+    }
+  }
+  g.items = g.items.filter(it => !it.dead && it.life > 0);
+}
+
+function showStoryResult(win) {
+  const S = game.story;
+  S.phase = 'result';
+  const me = game.players[0];
+  const secs = Math.round(S.time / 60);
+  const total = STORIES[S.c].stages.length;
+  if (win) saveStoryClear(S.c, S.idx, { time: secs, kills: S.kills });
+  $('resultTitle').textContent = win ? `${S.st.name} 승리!` : '패배…';
+  $('resultStats').innerHTML = [
+    ['격파', `${S.kills}명`],
+    ['시간', `${Math.floor(secs / 60)}분 ${secs % 60}초`],
+    ['남은 체력', win ? `${Math.ceil(me.hp)} / ${me.maxHp}` : '-'],
+  ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+  $('resultNext').classList.toggle('hidden', !win || S.idx + 1 >= total);
+  $('resultSub').textContent = win
+    ? (S.idx + 1 >= total ? `「${STORIES[S.c].title}」 완결! 천하에 이름을 떨쳤다.` : '다음 전장으로 나아가자.')
+    : '다시 도전해 보세요. 막기와 발차기를 섞어 보세요!';
+  $('storyResult').classList.remove('hidden');
 }
 
 /* ----------------------------- 네트워크 (PeerJS) -----------------------------
@@ -1154,6 +1711,9 @@ const KEYMAP = {
 window.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;
   if (e.code === 'KeyH') { showHitbox = !showHitbox; $('hitboxOpt').checked = showHitbox; return; }
+  if (game && game.story && game.story.talk && !e.repeat && ['Enter', 'Space', 'KeyJ', 'KeyZ'].includes(e.code)) {
+    e.preventDefault(); advanceTalk(); return;
+  }
   const k = KEYMAP[e.code];
   if (!k || !game) return;
   e.preventDefault();
@@ -1260,11 +1820,28 @@ function handleEvent(ev) {
       fx.slashes.push({ x: ev.x, y: ev.y, a: -0.6 + Math.random() * 1.2, len: ev.hv ? 90 : 55, life: 16, max: 16 });
       if (ev.w) popText(ev.x, ev.y - 20, `-${ev.d} 자루`, 18, '#6b625a');
       else popText(ev.x, ev.y - 20, (ev.a ? '' : '-') + ev.d, ev.hv ? 34 : 24, RED);
-      fx.shake = Math.max(fx.shake, ev.hv ? 12 : 5);
-      if (ev.hv) fx.flash = 0.35;
+      fx.shake = Math.max(fx.shake, ev.g ? 3 : ev.hv ? 12 : 5);
+      if (ev.hv && !ev.g) fx.flash = 0.35;
       if (game && ev.t === game.me && navigator.vibrate) { try { navigator.vibrate(ev.hv ? 60 : 25); } catch (e) { /* ignore */ } }
       break;
     }
+    case 'gko':
+      Sound.hit(true);
+      sparks(ev.x, ev.y, 12, 'rgba(31,26,23,', 6);
+      fx.shake = Math.max(fx.shake, 6);
+      break;
+    case 'heal':
+      Sound.tone(660, 990, 0.18, 'triangle', 0.2);
+      popText(ev.x, ev.y, `+${ev.d}`, 24, '#2e8b3d', 50);
+      break;
+    case 'shoot':
+      Sound.tone(520, 180, 0.12, 'triangle', 0.15);
+      break;
+    case 'deflect':
+      Sound.block();
+      sparks(ev.x, ev.y, 8, 'rgba(232,197,71,', 4);
+      popText(ev.x, ev.y - 18, '쳐냄!', 18, '#3d5a80', 34);
+      break;
     case 'block':
       Sound.block();
       sparks(ev.x, ev.y, 10, 'rgba(225,230,238,', 4);
@@ -1343,6 +1920,7 @@ function resize() {
   buildBackground();
   cachePadRects();
   sizePreviews();
+  if (!$('storyScreen').classList.contains('hidden')) drawStageBosses();
 }
 
 function buildBackground() {
@@ -1533,8 +2111,64 @@ function drawWeapon(c, type, hx, hy, ang, s, now, ink) {
       c.fill(); c.stroke();
       break;
     }
+    case 'pike': {
+      strokeLine(c, -40, 0, 66, 0, '#7a5a34', 3);
+      c.beginPath(); c.moveTo(64, -2.6); c.quadraticCurveTo(76, -4, 86, 0); c.quadraticCurveTo(76, 4, 64, 2.6); c.closePath();
+      c.fillStyle = silver; c.fill(); c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
+      c.fillStyle = '#a8322a'; c.fillRect(60, -2.5, 4, 5);
+      break;
+    }
+    case 'saber': {
+      strokeLine(c, -8, 0, 0, 0, '#4a3524', 3.6);
+      strokeLine(c, 0, -5, 0, 5, '#6b6b6b', 3);
+      c.beginPath();
+      c.moveTo(2, -3); c.lineTo(42, -3); c.quadraticCurveTo(50, -2, 51, 1); c.quadraticCurveTo(46, 5.5, 38, 5); c.lineTo(2, 3.6); c.closePath();
+      c.fillStyle = silver; c.fill(); c.strokeStyle = ink; c.lineWidth = 1.1; c.stroke();
+      break;
+    }
   }
   c.restore();
+}
+
+/* 활은 손 위치 기준으로 세워 그리고, 시위는 뒷손(oh)까지 당겨진다. 당기는 동안 화살이 시위에 걸려 보인다. */
+function drawBow(c, p, pose, ink) {
+  const { mh, oh } = pose;
+  const drawing = p.af >= 0 && p.af < (moveOf(p).fire || 0);
+  c.save();
+  c.translate(mh.x, mh.y);
+  c.strokeStyle = '#6b4a2a'; c.lineWidth = 3; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-4, -30); c.quadraticCurveTo(14, 0, -4, 30); c.stroke();
+  c.restore();
+  const sx = drawing ? oh.x : mh.x - 4, sy = drawing ? oh.y : mh.y;
+  c.strokeStyle = 'rgba(60,50,40,0.8)'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(mh.x - 4, mh.y - 30); c.lineTo(sx, sy); c.lineTo(mh.x - 4, mh.y + 30); c.stroke();
+  if (drawing) {
+    strokeLine(c, sx, sy, mh.x + 18, mh.y, '#5a4630', 1.8);
+    c.fillStyle = '#c3c9d0';
+    c.beginPath(); c.moveTo(mh.x + 18, mh.y - 2.5); c.lineTo(mh.x + 24, mh.y); c.lineTo(mh.x + 18, mh.y + 2.5); c.closePath(); c.fill();
+  }
+}
+
+function drawSoldierHead(c, ch, p, hd, ink, now) {
+  const R = SK.headR;
+  if (p.band) {
+    strokeLine(c, hd.x - 10.5, hd.y - 4, hd.x + 10.5, hd.y - 5, p.band, 4);
+    const fl = Math.sin(now * 0.012 + p.idx) * 2;
+    c.strokeStyle = p.band; c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(hd.x - 10, hd.y - 4); c.quadraticCurveTo(hd.x - 17, hd.y - 2 + fl, hd.x - 22, hd.y + 4 + fl); c.stroke();
+  } else {
+    c.fillStyle = p.helm || '#3a3a3a';
+    c.beginPath(); c.moveTo(hd.x - R - 2, hd.y - 2); c.lineTo(hd.x - 1, hd.y - R - 9); c.lineTo(hd.x + R + 2, hd.y - 2); c.closePath(); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = '#b22222';
+    c.beginPath(); c.arc(hd.x - 1, hd.y - R - 10, 2.4, 0, Math.PI * 2); c.fill();
+  }
+  if (ch.elite) {
+    const sway = Math.sin(now * 0.01 + p.idx) * 3 - clamp(p.vx * p.f, -5, 8);
+    c.strokeStyle = '#c0392b'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(hd.x - 1, hd.y - R - 10); c.quadraticCurveTo(hd.x - 10 + sway, hd.y - R - 26, hd.x - 22 + sway, hd.y - R - 18); c.stroke();
+    strokeLine(c, hd.x + 1, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
+  }
 }
 
 /* ----------------------------- 스틱맨 드로잉 ----------------------------- */
@@ -1608,6 +2242,7 @@ function drawHead(c, ch, p, pose, now, ink) {
   c.fillStyle = ch.id === 'guanyu' ? '#a8382e' : PAPER_LIGHT;
   c.fill();
   c.strokeStyle = ink; c.lineWidth = 3; c.stroke();
+  if (ch.soldier) drawSoldierHead(c, ch, p, hd, ink, now);
 
   if (ch.id === 'liubei') {
     c.fillStyle = ink; c.beginPath(); c.arc(hd.x - 3, hd.y - R - 2, 4, 0, Math.PI * 2); c.fill();
@@ -1674,7 +2309,7 @@ function drawFighter(c, p, now, ox, oy, alpha) {
 
   // 몸통 (먹선 테두리 + 캐릭터 색)
   strokeLine(c, pose.hip.x, pose.hip.y, pose.sh.x, pose.sh.y, ink, 9.5);
-  strokeLine(c, pose.hip.x, pose.hip.y, pose.sh.x, pose.sh.y, ch.body, 6);
+  strokeLine(c, pose.hip.x, pose.hip.y, pose.sh.x, pose.sh.y, p.body || ch.body, 6);
   if (ch.id === 'zhangfei') {
     const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.15, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.15;
     strokeLine(c, bx - 6, by + 1, bx + 6, by - 1, ch.accent, 4.5);
@@ -1693,7 +2328,8 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   drawHead(c, ch, p, pose, now, ink);
 
   // 주무기 + 앞팔
-  drawWeapon(c, ch.weapon, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink);
+  if (ch.weapon === 'bow') drawBow(c, p, pose, ink);
+  else drawWeapon(c, ch.weapon, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink);
   limb(c, pose.sh, pose.me, pose.mh, ink, 4.6);
 
   c.fillStyle = ch.id === 'zhangfei' ? ch.accent : ink;
@@ -1737,14 +2373,49 @@ function drawBanner(c, text, sub, size, col, popT) {
 
 function drawHUD(c) {
   const g = game, P = g.players;
-  for (let i = 0; i < 2; i++) {
-    const p = P[i], ch = CHAR[p.c], left = i === 0;
+  if (g.mode === 'story') { drawStoryHUD(c); return; }
+  for (let i = 0; i < 2; i++) drawPlayerBar(c, P[i], i === 0, i === g.me);
+  c.textAlign = 'center'; c.fillStyle = INK;
+  c.font = `900 22px ${SERIF}`;
+  c.fillText(`第${hanNum(g.round)}合`, W / 2, 80);
+  c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.55)';
+  if (g.code) c.fillText(`방 ${g.code}`, W / 2, 98);
+  if (g.mode === 'practice') c.fillText('연습 모드 · vs CPU', W / 2, 98);
+  if (g.link) { c.font = '700 11px sans-serif'; c.fillText(g.link, W / 2, 114); }
+}
+
+function drawStoryHUD(c) {
+  const g = game, S = g.story, me = g.players[0];
+  drawPlayerBar(c, me, true, true);
+  c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  c.font = `900 16px ${SERIF}`; c.fillStyle = RED;
+  c.fillText(`격파 ${S.kills}`, 26, 104);
+  if (S.boss) {
+    drawPlayerBar(c, S.boss, false, false);
+  } else {
+    const left = S.queue.length + storyFoes().length;
+    c.textAlign = 'right'; c.font = `900 18px ${SERIF}`; c.fillStyle = INK;
+    c.fillText(FACTIONS[S.st.faction].name, W - 26, 30);
+    c.font = '700 13px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.7)';
+    c.fillText(`남은 적 ${left}`, W - 26, 50);
+  }
+  c.textAlign = 'center'; c.fillStyle = INK;
+  c.font = `900 22px ${SERIF}`;
+  c.fillText(S.st.hanja, W / 2, 80);
+  c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.6)';
+  const wave = S.bossSpawned ? '적장전' : `제 ${Math.max(1, S.wave + 1)}진 / ${S.st.waves.length}`;
+  c.fillText(`${S.st.name} · ${wave}`, W / 2, 98);
+}
+
+function drawPlayerBar(c, p, left, isMe) {
+  {
     const bw = 340, bh = 16, by = 36;
     const bx = left ? 26 : W - 26 - bw;
     const ax = left ? bx : bx + bw;
     c.textAlign = left ? 'left' : 'right'; c.textBaseline = 'alphabetic';
     c.font = `900 19px ${SERIF}`; c.fillStyle = INK;
-    const name = `${ch.hanja} ${ch.name}`;
+    const fn = fighterName(p);
+    const name = `${fn.hanja} ${fn.name}`;
     c.fillText(name, ax, by - 8);
     let tx = ax + (left ? 1 : -1) * (c.measureText(name).width + 8);
     const tag = (label, col) => {
@@ -1756,8 +2427,9 @@ function drawHUD(c) {
       c.textAlign = left ? 'left' : 'right';
       tx += (left ? 1 : -1) * (tw + 4);
     };
-    if (i === g.me) tag('나', RED);
+    if (isMe) tag('나', RED);
     if (p.hc) tag('핸디캡', '#2f6fd6');
+    if (p.isBoss) tag('적장', '#6a2c8f');
 
     const frac = clamp(p.hp / p.maxHp, 0, 1), lag = clamp(p.hpLag / p.maxHp, 0, 1);
     c.fillStyle = 'rgba(31,26,23,0.15)'; c.fillRect(bx, by, bw, bh);
@@ -1797,17 +2469,20 @@ function drawHUD(c) {
       c.fillText(`×${p.wins}`, left ? bx + 5 * 22 + 2 : bx + bw - 5 * 22 - 2, sy + 14);
     }
   }
-  c.textAlign = 'center'; c.fillStyle = INK;
-  c.font = `900 22px ${SERIF}`;
-  c.fillText(`第${hanNum(g.round)}合`, W / 2, 80);
-  c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.55)';
-  if (g.code) c.fillText(`방 ${g.code}`, W / 2, 98);
-  if (g.mode === 'practice') c.fillText('연습 모드 · vs CPU', W / 2, 98);
-  if (g.link) { c.font = '700 11px sans-serif'; c.fillText(g.link, W / 2, 114); }
 }
 
 function drawPhaseBanner(c) {
   const g = game, P = g.players;
+  if (g.mode === 'story') {
+    const S = g.story;
+    if (S.phase === 'clear') drawBanner(c, '승리!', `${S.st.name} 평정`, 76, '#e8b04a', S.phaseT / 10);
+    else if (S.phase === 'fail') drawBanner(c, '패배…', '다시 일어서라', 70, '#e0463a', S.phaseT / 10);
+    else if (S.banner && g.frame - S.banner.t0 < 90) {
+      const t = g.frame - S.banner.t0;
+      drawBanner(c, S.banner.text, S.banner.sub, 60, S.banner.col, t / 10);
+    }
+    return;
+  }
   if (g.phase === PHASE.INTRO) {
     if (g.round === 1 && g.pt < 55) {
       const a = CHAR[P[0].c], b = CHAR[P[1].c];
@@ -1870,6 +2545,48 @@ function drawCutin(c) {
   c.restore();
 }
 
+function drawWarn(c, p, pose, now) {
+  const x = p.rx + p.f * pose.hd.x, y = p.ry + pose.hd.y - 30 + Math.sin(now * 0.03) * 2;
+  c.save();
+  c.font = `900 22px ${SERIF}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineWidth = 4; c.strokeStyle = PAPER_LIGHT; c.strokeText('!', x, y);
+  c.fillStyle = '#d3241c'; c.fillText('!', x, y);
+  c.restore();
+}
+
+function drawArrow(c, a) {
+  const ang = Math.atan2(a.vy, a.vx), cs = Math.cos(ang), sn = Math.sin(ang);
+  const tx = a.x - cs * 26, ty = a.y - sn * 26;
+  strokeLine(c, tx, ty, a.x, a.y, '#5a4630', 2);
+  c.fillStyle = '#9aa3ad';
+  c.beginPath();
+  c.moveTo(a.x + cs * 6, a.y + sn * 6);
+  c.lineTo(a.x - sn * 3, a.y + cs * 3);
+  c.lineTo(a.x + sn * 3, a.y - cs * 3);
+  c.closePath(); c.fill();
+  c.strokeStyle = '#c0392b'; c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(tx, ty); c.lineTo(tx - cs * 5 - sn * 4, ty - sn * 5 + cs * 4);
+  c.moveTo(tx, ty); c.lineTo(tx - cs * 5 + sn * 4, ty - sn * 5 - cs * 4);
+  c.stroke();
+}
+
+function drawBun(c, it, now) {
+  const bob = Math.sin(now * 0.006 + it.x) * 2;
+  const x = it.x, y = it.y + bob;
+  c.save();
+  c.globalAlpha = it.life < 90 ? (Math.floor(it.life / 6) % 2 ? 0.4 : 1) : 1;
+  c.fillStyle = 'rgba(31,26,23,0.15)';
+  c.beginPath(); c.ellipse(x, GROUND + 2, 12, 3, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#fbf6ea'; c.strokeStyle = INK; c.lineWidth = 1.8;
+  c.beginPath(); c.ellipse(x, y, 13, 9, 0, Math.PI, 0); c.lineTo(x + 13, y + 3); c.lineTo(x - 13, y + 3); c.closePath(); c.fill(); c.stroke();
+  c.lineWidth = 1.2;
+  c.beginPath();
+  for (let i = -2; i <= 2; i++) { c.moveTo(x + i * 3, y - 8 + Math.abs(i)); c.quadraticCurveTo(x + i * 1.5, y - 4, x, y - 9); }
+  c.stroke();
+  c.restore();
+}
+
 function drawDizzy(c, p, pose, now) {
   const hx = p.rx + p.f * pose.hd.x, hy = p.ry + pose.hd.y - 20;
   for (let i = 0; i < 3; i++) {
@@ -1929,12 +2646,20 @@ function render(now, k) {
   // 대시 잔상
   for (const p of g.players) p.ghosts.forEach((gh, i) => drawFighter(ctx, p, now, gh[0], gh[1], 0.1 + i * 0.05));
 
-  // 무기 궤적 + 캐릭터 (내 캐릭터를 앞에)
-  const order = g.me === 0 ? [1, 0] : [0, 1];
-  for (const idx of order) {
-    const p = g.players[idx];
+  if (g.items) for (const it of g.items) drawBun(ctx, it, now);
+
+  // 무기 궤적 + 캐릭터 (내 캐릭터를 맨 앞에)
+  const meP = g.players[g.me];
+  const order = g.players.filter(p => p !== meP);
+  if (meP) order.push(meP);
+  for (const p of order) {
     drawTrail(ctx, p);
-    const pose = drawFighter(ctx, p, now, p.rx, p.ry, 1);
+    const fade = g.mode === 'story' && p !== meP && p.st === ST.KO ? clamp(1 - (p.kt - 40) / 30, 0, 1) : 1;
+    const pose = drawFighter(ctx, p, now, p.rx, p.ry, fade);
+    if (p !== meP && g.mode === 'story' && p.af >= 0 && p.st === ST.ATK) {
+      const mv = moveOf(p), first = mv.hits.length ? mv.hits[0].from : mv.fire || 0;
+      if (p.af < first) drawWarn(ctx, p, pose, now);
+    }
     const trailArm = p.af >= 0 ? moveOf(p).arms[0] : null;
     if (trailArm) {
       const sgm = bladeSeg(p, pose, trailArm, p.rx, p.ry);
@@ -1967,6 +2692,8 @@ function render(now, k) {
       }
     }
   }
+
+  if (g.projs) for (const a of g.projs) drawArrow(ctx, a);
 
   // 내 캐릭터 표시
   const me = g.players[g.me];
@@ -2028,7 +2755,10 @@ let lastTs = 0, acc = 0;
 
 function gameTick() {
   const g = game;
-  if (g.mode === 'host' || g.mode === 'practice') {
+  if (g.mode === 'story') {
+    Object.assign(g.inputs[0], localInput);
+    storyStep();
+  } else if (g.mode === 'host' || g.mode === 'practice') {
     Object.assign(g.inputs[0], localInput);
     simStep();
     if (g.mode === 'host') broadcastState();
@@ -2064,6 +2794,9 @@ const previews = [];
 function showScreen(name) {
   $('menu').classList.toggle('hidden', name !== 'menu');
   $('lobby').classList.toggle('hidden', name !== 'lobby');
+  $('storyScreen').classList.toggle('hidden', name !== 'story');
+  if (name !== 'game') { $('talk').classList.add('hidden'); $('storyResult').classList.add('hidden'); }
+  if (name === 'story') buildStoryScreen();
   const inGame = name === 'game';
   $('pad').classList.toggle('hidden', !inGame);
   $('exitBtn').classList.toggle('hidden', !inGame);
@@ -2090,14 +2823,14 @@ async function enterGame() {
   acc = 0;
   showScreen('game');
   clearInterval(net.linkTimer);
-  if (game && game.mode !== 'practice') {
+  if (game && (game.mode === 'host' || game.mode === 'client')) {
     net.linkTimer = setInterval(updateLinkInfo, 2000);
     setTimeout(updateLinkInfo, 300);
   }
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* 지원 안 함 */ }
 }
 
-function leaveGame() {
+function leaveGame(to = 'menu') {
   netClose();
   game = null;
   spReady = false;
@@ -2106,7 +2839,69 @@ function leaveGame() {
   for (const k of KEYS) { padHeld[k] = keyHeld[k] = mouseHeld[k] = false; }
   refreshInput();
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
-  showScreen('menu');
+  showScreen(to);
+}
+
+let storyChar = null;
+
+function buildStoryScreen() {
+  const c = storyChar || selectedChar;
+  storyChar = c;
+  const story = STORIES[c], ch = CHAR[c];
+  const prog = storyProgress()[c] || { cleared: 0, best: {} };
+  const tabs = $('storyTabs');
+  tabs.innerHTML = '';
+  for (const h of CHARACTERS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'story-tab' + (h.id === c ? ' on' : '');
+    const done = (storyProgress()[h.id] || {}).cleared || 0;
+    b.innerHTML = `${h.name}<small>${done}/${STORIES[h.id].stages.length}</small>`;
+    b.addEventListener('click', () => { storyChar = h.id; buildStoryScreen(); });
+    tabs.appendChild(b);
+  }
+  $('storyTitle').textContent = `${ch.hanja} ${ch.name} · 「${story.title}」`;
+  const list = $('stageList');
+  list.innerHTML = '';
+  story.stages.forEach((st, i) => {
+    const locked = i > prog.cleared;
+    const cleared = i < prog.cleared;
+    const boss = st.boss.name || CHAR[st.boss.c].name;
+    const best = prog.best[i];
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'stage-card' + (locked ? ' locked' : '') + (cleared ? ' cleared' : '');
+    card.disabled = locked;
+    card.innerHTML = `
+      <div class="stage-no">第${hanNum(i + 1)}章</div>
+      <div class="stage-name">${st.name}<small>${st.hanja}</small></div>
+      <div class="stage-meta">${FACTIONS[st.faction].name} · 적장 ${boss}</div>
+      <div class="stage-state">${locked ? '잠김' : cleared ? `클리어${best ? ` · ${best.time}초` : ''}` : '도전!'}</div>
+      <canvas class="stage-boss"></canvas>`;
+    card.addEventListener('click', () => { Sound.init(); goFullscreen(); startStory(c, i); });
+    list.appendChild(card);
+  });
+  requestAnimationFrame(drawStageBosses);
+}
+
+function drawStageBosses() {
+  const story = STORIES[storyChar];
+  if (!story) return;
+  [...document.querySelectorAll('.stage-boss')].forEach((cv, i) => {
+    const st = story.stages[i], b = st.boss, fac = FACTIONS[st.faction];
+    const r = cv.getBoundingClientRect();
+    if (!r.width) return;
+    cv.width = Math.round(r.width * view.dpr); cv.height = Math.round(r.height * view.dpr);
+    const c = cv.getContext('2d');
+    const p = makePlayer(9, b.c, false);
+    p.f = -1;
+    if (CHAR[b.c].soldier) { p.body = fac.body; p.helm = fac.helm; p.band = fac.band; }
+    const s = Math.min(cv.height / 165, cv.width / 140);
+    c.setTransform(s, 0, 0, s, cv.width * 0.62, cv.height - 6 * s);
+    c.fillStyle = 'rgba(31,26,23,0.15)';
+    c.beginPath(); c.ellipse(0, 2, 26, 4, 0, 0, Math.PI * 2); c.fill();
+    drawFighter(c, p, 0, 0, 0, 1);
+  });
 }
 
 function goFullscreen() {
@@ -2152,12 +2947,20 @@ function buildMenu() {
     enterGame();
   });
   $('cancelBtn').addEventListener('click', () => { netClose(); showScreen('menu'); });
+  $('storyBtn').addEventListener('click', () => { Sound.init(); menuMsg(''); storyChar = selectedChar; showScreen('story'); });
+  $('storyBack').addEventListener('click', () => showScreen('menu'));
+  $('talk').addEventListener('click', advanceTalk);
+  $('resultNext').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx + 1); });
+  $('resultRetry').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx); });
+  $('resultMenu').addEventListener('click', () => { storyChar = game.story.c; leaveGame('story'); });
   $('copyBtn').addEventListener('click', async () => {
     const url = `${location.origin}${location.pathname}?room=${net.code}`;
     try { await navigator.clipboard.writeText(url); lobbyMsg('초대 링크를 복사했어요! 상대를 기다리는 중...'); }
     catch (e) { lobbyMsg(url); }
   });
-  $('exitBtn').addEventListener('click', () => leaveGame());
+  $('exitBtn').addEventListener('click', () => {
+    if (game && game.mode === 'story') { storyChar = game.story.c; leaveGame('story'); } else leaveGame();
+  });
   $('soundOpt').addEventListener('change', e => { Sound.enabled = e.target.checked; localStorage.setItem('sb_sound', e.target.checked ? '1' : '0'); });
   $('hitboxOpt').addEventListener('change', e => { showHitbox = e.target.checked; });
   $('handicap').addEventListener('change', e => localStorage.setItem('sb_handicap', e.target.checked ? '1' : '0'));

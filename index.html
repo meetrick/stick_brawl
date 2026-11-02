@@ -67,6 +67,7 @@
           <button id="joinBtn" type="button">참여</button>
         </div>
         <button id="practiceBtn" type="button">연습 (CPU)</button>
+        <button id="storyBtn" class="primary story" type="button">스토리</button>
       </div>
 
       <div class="options">
@@ -90,6 +91,38 @@
         </div>
       </div>
     </section>
+
+    <!-- 스토리 모드 -->
+    <section id="storyScreen" class="screen hidden">
+      <div class="story-head">
+        <button id="storyBack" type="button">← 메뉴</button>
+        <h2 id="storyTitle"></h2>
+      </div>
+      <div id="storyTabs"></div>
+      <div id="stageList"></div>
+      <p class="story-tip">병졸을 쓸어버리고 적장을 쓰러뜨려라! 궁병의 화살은 막거나, 점프로 피하거나, 무기로 쳐낼 수 있어요.</p>
+    </section>
+
+    <div id="talk" class="hidden">
+      <div class="talk-box">
+        <div id="talkName"></div>
+        <div id="talkText"></div>
+        <div class="talk-next">터치해서 계속 ▶</div>
+      </div>
+    </div>
+
+    <div id="storyResult" class="hidden">
+      <div class="result-card">
+        <h2 id="resultTitle"></h2>
+        <p id="resultSub"></p>
+        <div id="resultStats"></div>
+        <div class="result-actions">
+          <button id="resultNext" class="primary" type="button">다음 장</button>
+          <button id="resultRetry" type="button">다시 하기</button>
+          <button id="resultMenu" type="button">스토리 목록</button>
+        </div>
+      </div>
+    </div>
 
     <!-- iOS 홈 화면 추가 안내 -->
     <div id="installGuide" class="hidden">
