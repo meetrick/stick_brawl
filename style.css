@@ -206,6 +206,12 @@ button:disabled {
   color: var(--ink-soft);
 }
 
+#infoSpecial {
+  font-size: clamp(11px, 3vh, 14px);
+  font-weight: 700;
+  color: #8a5a08;
+}
+
 #infoStats {
   display: grid;
   grid-template-columns: auto auto;
@@ -374,7 +380,7 @@ button:disabled {
 .cluster.right {
   right: max(3vw, env(safe-area-inset-right));
   width: calc(var(--b) * 2.6);
-  height: calc(var(--b) * 1.9);
+  height: calc(var(--b) * 2.4);
   --b: clamp(54px, 19vh, 92px);
 }
 
@@ -417,6 +423,28 @@ button:disabled {
   bottom: calc(var(--b) * 0.75);
   width: calc(var(--b) * 0.95);
   height: calc(var(--b) * 0.95);
+}
+
+.cluster.right .btn.sp {
+  right: calc(var(--b) * 0.2);
+  bottom: calc(var(--b) * 1.45);
+  width: calc(var(--b) * 0.9);
+  height: calc(var(--b) * 0.9);
+  font-size: calc(var(--b) * 0.26);
+  color: rgba(31, 26, 23, 0.35);
+  border-style: dashed;
+}
+
+.cluster.right .btn.sp.ready {
+  color: #fff8e8;
+  background: rgba(201, 138, 18, 0.7);
+  border: 3px solid rgba(120, 80, 10, 0.8);
+  animation: spPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes spPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 176, 74, 0.6); }
+  50% { box-shadow: 0 0 0 calc(var(--b) * 0.12) rgba(232, 176, 74, 0); }
 }
 
 #exitBtn {
