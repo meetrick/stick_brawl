@@ -43,7 +43,7 @@ const CHARACTERS = [
   {
     id: 'liubei', name: '유비', hanja: '劉備', weapon: 'twin', weaponName: '쌍고검 (雙股劍)',
     desc: '밸런스형 · 한 번 공격에 두 번 베는 빠른 쌍검',
-    hp: 1.0, speed: 1.0, jump: 1.0, body: '#e0b422', accent: '#2e8b3d',
+    hp: 1.0, speed: 1.0, jump: 1.0, body: '#e0b422', accent: '#2e8b3d', chain: 3,
     stats: { 체력: 3, 속도: 3, 공격력: 2, 공속: 4, 사거리: 2 },
     idle: { main: [18, 14, -0.9], off: [10, 18, -0.4], lean: 0 },
     guard: { main: [16, -4, -1.2], off: [12, 2, -1.9], lean: -0.12 },
@@ -141,7 +141,7 @@ const CHARACTERS = [
   {
     id: 'zhaoyun', name: '조자룡', hanja: '趙子龍', weapon: 'spear', weaponName: '애각창 (涯角槍)',
     desc: '최고의 기동력과 점프력 · 딜레이 없는 연속 찌르기',
-    hp: 0.85, speed: 1.3, jump: 1.22, body: '#f7f5ef', accent: '#2f6fd6',
+    hp: 0.85, speed: 1.3, jump: 1.22, body: '#f7f5ef', accent: '#2f6fd6', chain: 3,
     stats: { 체력: 1, 속도: 5, 공격력: 1, 공속: 5, 사거리: 4 },
     idle: { main: [14, 6, -0.2], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
@@ -175,15 +175,38 @@ function buildMoveKeys(ch, mv) {
   mv.leanK = [[0, i.lean], ...mv.lean, [mv.total, i.lean]];
   mv.lunges = !mv.lunge ? [] : Array.isArray(mv.lunge[0]) ? mv.lunge : [mv.lunge];
   mv.lastHitEnd = mv.hits.length ? Math.max(...mv.hits.map(h => h.to)) : mv.roar ? mv.roar.f : mv.counter ? mv.counter[1] : 0;
+  mv.legK = mv.legs ? [[0, ...mv.legBase], ...mv.legs, [mv.total, ...mv.legBase]] : null;
+  mv.arms = [...new Set(mv.hits.map(h => h.arm))];
+  return mv;
 }
+
+/* 발차기는 모든 캐릭터 공통: 무기는 막기 자세로 쥔 채 앞발로 찬다. 가드 게이지(gd)를 크게 깎아 막기만 하는 상대를 깬다. */
+const KICK = {
+  total: 22, guardArms: true, lunge: [6, 3], main: [],
+  lean: [[5, -0.12], [8, -0.3], [13, -0.25]],
+  legs: [[3, 6, -26], [7, 50, -54], [12, 48, -52]], legBase: [14, 0],
+  hits: [{ from: 6, to: 11, arm: 'foot', dmg: 6, kb: 11, up: 4, gd: 45 }],
+};
+const AIR_KICK = {
+  total: 30, guardArms: true, air: true, dive: [5, 7, 3], main: [],
+  lean: [[3, 0.05], [7, -0.45], [24, -0.45]],
+  legs: [[3, 8, -30], [7, 50, -26], [24, 50, -26]], legBase: [12, -12], tuck: [-6, -30],
+  hits: [{ from: 6, to: 22, arm: 'foot', dmg: 8, kb: 8, up: 5, gd: 30 }],
+};
+const COMBO_WINDOW = 18;
+
 for (const ch of CHARACTERS) {
   buildMoveKeys(ch, ch.attack);
   buildMoveKeys(ch, ch.special);
+  ch.kick = buildMoveKeys(ch, { ...KICK });
+  ch.airKick = buildMoveKeys(ch, { ...AIR_KICK });
   if (!ch.guard.off) ch.guard.off = ch.idle.off;
   CHAR[ch.id] = ch;
 }
 
-const moveOf = p => (p.mv === 's' ? CHAR[p.c].special : CHAR[p.c].attack);
+const MOVES = { n: 'attack', s: 'special', k: 'kick', j: 'airKick' };
+const MOVE_CODES = ['n', 's', 'k', 'j'];
+const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
 const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128 };
 const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170 };
@@ -238,9 +261,12 @@ function ik(sx, sy, tx, ty, l1, l2, bend) {
  */
 function computePose(p, now) {
   const ch = CHAR[p.c], wd = WEAPONS[ch.weapon];
+  const A = p.af >= 0 ? moveOf(p) : null;
   let m, o, lean;
-  if (p.af >= 0) {
-    const A = moveOf(p);
+  if (A && A.guardArms) {
+    m = ch.guard.main.slice(); o = ch.guard.off.slice();
+    lean = sampleKeys(A.leanK, p.af)[0];
+  } else if (A) {
     m = sampleKeys(A.mainK, p.af);
     o = A.offK ? sampleKeys(A.offK, p.af) : ch.idle.off.slice();
     lean = sampleKeys(A.leanK, p.af)[0];
@@ -299,6 +325,10 @@ function computePose(p, now) {
   } else {
     ff = [14, 0]; fb = [-12, 0];
   }
+  if (A && A.legK) {
+    ff = sampleKeys(A.legK, p.af);
+    fb = A.tuck ? A.tuck.slice() : [-16, 0];
+  }
   const legF = ik(hip.x, hip.y, ff[0], ff[1], SK.thigh, SK.shin, -1);
   const legB = ik(hip.x, hip.y, fb[0], fb[1], SK.thigh, SK.shin, -1);
 
@@ -313,6 +343,9 @@ function computePose(p, now) {
 
 /* 무기 날(blade) 구간을 월드 좌표 캡슐로 변환. 핸디캡 배율은 끝(사거리)만 늘려 근접 사각지대가 생기지 않게 한다 */
 function bladeSeg(p, pose, arm, ox = p.x, oy = p.y) {
+  if (arm === 'foot') {
+    return { ax: ox + p.f * pose.kf.x, ay: oy + pose.kf.y, bx: ox + p.f * pose.ff.x, by: oy + pose.ff.y, r: 9 * p.ws };
+  }
   const wd = WEAPONS[CHAR[p.c].weapon];
   const hand = arm === 'off' ? pose.oh : pose.mh;
   const w = arm === 'off' ? pose.ow : pose.w;
@@ -349,7 +382,7 @@ function makePlayer(idx, charId, handicapped) {
     ws: handicapped ? 1.3 : 1, hs: handicapped ? 0.8 : 1,
     x: 0, y: GROUND, vx: 0, vy: 0, f: 1, g: true,
     st: ST.IDLE, af: -1, an: 0, hm: 0, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
-    mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0,
+    mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, prevSeg: null,
     rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trail: [], ghosts: [],
   };
@@ -363,7 +396,7 @@ function resetPlayer(p) {
   p.f = p.idx === 0 ? 1 : -1;
   p.vx = p.vy = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
   p.st = ST.IDLE; p.af = -1; p.hm = 0; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
-  p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0;
+  p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
   p.ad = false; p.bj = p.ba = p.bd = p.bsp = 0; p.prevSeg = null; p.trail.length = 0; p.ghosts.length = 0;
 }
 
@@ -422,9 +455,17 @@ function nextRound() {
 }
 
 function startMove(p, kind) {
-  const mv = kind === 's' ? CHAR[p.c].special : CHAR[p.c].attack;
+  const mv = CHAR[p.c][MOVES[kind]];
   p.mv = kind; p.af = 0; p.an++; p.hm = 0; p.ba = 0; p.prevSeg = null;
   if (mv.inv) p.inv = Math.max(p.inv, mv.inv);
+}
+
+/* 땅: 무기 → 무기 → 발차기 콤보(직전 공격이 끝난 뒤 COMBO_WINDOW 안에 이어 누르면 다음 단계). 공중: 점프 발차기(점프당 1회). */
+function nextAttackKind(p) {
+  if (!p.g) return p.ak ? null : 'j';
+  p.cs = p.cw > 0 ? p.cs + 1 : 0;
+  if (p.cs >= (CHAR[p.c].chain || 2)) { p.cs = -1; return 'k'; }
+  return 'n';
 }
 
 function updatePlayer(p, inp, opp, ctrl) {
@@ -439,6 +480,7 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.inv > 0) p.inv--;
   if (p.fl > 0) p.fl--;
   if (p.dz > 0) p.dz--;
+  if (p.cw > 0) p.cw--;
   if (p.st !== ST.BLOCK && p.gd < GUARD_MAX) p.gd = Math.min(GUARD_MAX, p.gd + 0.45);
 
   const dir = ctrl ? (inp.r ? 1 : 0) - (inp.l ? 1 : 0) : 0;
@@ -461,7 +503,11 @@ function updatePlayer(p, inp, opp, ctrl) {
       p.af++;
       if (p.g) for (const [f, v] of mv.lunges) if (p.af === f) p.vx = p.f * v * ch.speed;
       if (mv.roar && p.af === mv.roar.f) doRoar(p, opp);
-      if (p.af >= mv.total) { p.af = -1; p.mv = 'n'; mv = ch.attack; }
+      if (mv.dive && p.af === mv.dive[0]) { p.vx = p.f * mv.dive[1]; p.vy = Math.max(p.vy, mv.dive[2]); }
+      if (p.af >= mv.total) {
+        if (p.mv === 'n' || p.mv === 'k') p.cw = COMBO_WINDOW;
+        p.af = -1; p.mv = 'n'; mv = ch.attack;
+      }
     }
     if (p.df > 0) {
       p.df--;
@@ -489,13 +535,17 @@ function updatePlayer(p, inp, opp, ctrl) {
       }
     }
     if (p.af < 0 && free && ctrl && (p.ba > 0 || inp.a)) {
-      startMove(p, 'n');
-      emit({ k: 'sw', p: p.idx, c: p.c });
+      const kind = nextAttackKind(p);
+      if (kind) {
+        if (kind === 'j') p.ak = true;
+        startMove(p, kind);
+        emit({ k: 'sw', p: p.idx, c: p.c, kick: kind === 'k' || kind === 'j' ? 1 : 0 });
+      }
     }
     if (p.bj > 0 && p.g && p.af < 0 && p.df <= 0) {
       p.bj = 0; p.vy = -JUMP_V * ch.jump; p.g = false;
     }
-    if (p.df <= 0) {
+    if (p.df <= 0 && !(p.af >= 0 && moveOf(p).air)) {
       let target = dir * MOVE_SPEED * ch.speed;
       if (p.af >= 0) target *= 0.2;
       else if (back && p.g) target *= 0.6;
@@ -519,7 +569,10 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.y >= GROUND) {
     p.y = GROUND;
     if (p.vy > 0) p.vy = 0;
-    if (!p.g) { p.g = true; p.ad = false; }
+    if (!p.g) {
+      p.g = true; p.ad = false; p.ak = false;
+      if (p.mv === 'j' && p.af >= 0) { p.af = -1; p.mv = 'n'; }
+    }
   } else {
     p.g = false;
   }
@@ -567,7 +620,7 @@ function checkHits(att, def) {
     }
     if (!contact) continue;
     const along = wd.from + contact.t * (wd.to * att.ws - wd.from);
-    const weak = wd.tip > 0 && along < wd.tip && att.mv !== 's';
+    const weak = h.arm !== 'foot' && wd.tip > 0 && along < wd.tip && att.mv !== 's';
     const hh = weak ? { ...h, dmg: Math.max(1, Math.round(h.dmg * 0.5)), kb: h.kb * 0.5, up: (h.up ?? 3) * 0.6, weak: true } : h;
     applyHit(att, def, hh, i, contact);
     if (def.st === ST.KO || att.af < 0) return;
@@ -625,7 +678,7 @@ function block(att, def, h, pt) {
   def.st = ST.BLOCK;
   def.bs = Math.round(8 + h.dmg * 0.45);
   def.vx = dir * h.kb * 0.6;
-  def.gd -= h.dmg * 1.6;
+  def.gd -= h.gd ?? h.dmg * 1.6;
   def.mp = Math.min(METER_MAX, def.mp + h.dmg * 0.6);
   if (att.mv !== 's') att.mp = Math.min(METER_MAX, att.mp + h.dmg * 0.3);
   if (def.x <= 34 || def.x >= W - 34) att.vx -= dir * h.kb * 0.6;
@@ -979,14 +1032,14 @@ function onClientData(d) {
 
 function packPlayer(p) {
   return [r1(p.x), r1(p.y), r2(p.vx), r2(p.vy), p.f, r1(p.hp), p.st, p.af, p.an, p.df, p.inv > 0 ? 1 : 0, p.fl, p.wins, p.g ? 1 : 0, p.kt,
-    p.mv === 's' ? 1 : 0, Math.round(p.mp), Math.round(p.gd), p.dz];
+    Math.max(0, MOVE_CODES.indexOf(p.mv)), Math.round(p.mp), Math.round(p.gd), p.dz];
 }
 
 function unpackPlayer(p, a) {
   let mv;
   [p.x, p.y, p.vx, p.vy, p.f, p.hp, p.st, p.af, p.an, p.df, p.inv, p.fl, p.wins, p.g, p.kt, mv, p.mp, p.gd, p.dz] = a;
   p.g = !!p.g;
-  p.mv = mv ? 's' : 'n';
+  p.mv = MOVE_CODES[mv] || 'n';
 }
 
 function broadcastState() {
@@ -1187,7 +1240,8 @@ function popText(x, y, txt, size, col, life = 50) {
 function handleEvent(ev) {
   switch (ev.k) {
     case 'sw':
-      Sound.swing(ev.c === 'guanyu' || ev.c === 'zhangfei');
+      if (ev.kick) Sound.noise(0.1, 700, 1600, 0.8, 0.2);
+      else Sound.swing(ev.c === 'guanyu' || ev.c === 'zhangfei');
       break;
     case 'dash': {
       Sound.dash();
@@ -1776,14 +1830,19 @@ function drawPhaseBanner(c) {
 }
 
 function drawControlsHint(c) {
-  const lines = ['상대 반대쪽 방향을 누르고 있으면 막기 · 맞기 직전에 누르면 튕겨내기', '긴 무기는 품 안으로 파고들면 약해요 · 게이지가 차면 [필살]'];
+  const lines = [
+    '상대 반대쪽 방향을 누르고 있으면 막기 · 맞기 직전에 누르면 튕겨내기',
+    '공격을 이어 누르면 마지막은 발차기(막기 깨기) · 공중에서 공격하면 날아차기',
+    '긴 무기는 품 안으로 파고들면 약해요 · 게이지가 차면 [필살]',
+  ];
   c.save();
   c.font = '700 14px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
   const w = Math.max(...lines.map(l => c.measureText(l).width)) + 30;
+  const bh = lines.length * 22 + 6;
   c.fillStyle = 'rgba(243,234,210,0.88)';
-  c.fillRect(W / 2 - w / 2, H * 0.6 - 4, w, 50);
+  c.fillRect(W / 2 - w / 2, H * 0.6 - 4, w, bh);
   c.strokeStyle = 'rgba(31,26,23,0.5)'; c.lineWidth = 1.5;
-  c.strokeRect(W / 2 - w / 2, H * 0.6 - 4, w, 50);
+  c.strokeRect(W / 2 - w / 2, H * 0.6 - 4, w, bh);
   c.fillStyle = INK;
   lines.forEach((l, i) => c.fillText(l, W / 2, H * 0.6 + 9 + i * 22));
   c.restore();
@@ -1876,13 +1935,11 @@ function render(now, k) {
     const p = g.players[idx];
     drawTrail(ctx, p);
     const pose = drawFighter(ctx, p, now, p.rx, p.ry, 1);
-    if (p.af >= 0) {
-      const arms = CHAR[p.c].weapon === 'twin' ? ['main', 'off'] : ['main'];
-      for (const arm of arms) {
-        const sgm = bladeSeg(p, pose, arm, p.rx, p.ry);
-        const mx = (sgm.ax + sgm.bx) / 2, my = (sgm.ay + sgm.by) / 2;
-        if (arm === 'main') { p.trail.push([mx, my, sgm.bx, sgm.by]); if (p.trail.length > 7) p.trail.shift(); }
-      }
+    const trailArm = p.af >= 0 ? moveOf(p).arms[0] : null;
+    if (trailArm) {
+      const sgm = bladeSeg(p, pose, trailArm, p.rx, p.ry);
+      p.trail.push([(sgm.ax + sgm.bx) / 2, (sgm.ay + sgm.by) / 2, sgm.bx, sgm.by]);
+      if (p.trail.length > 7) p.trail.shift();
     } else if (p.trail.length) p.trail.shift();
 
     if (p.dz > 0 && p.st !== ST.KO) drawDizzy(ctx, p, pose, now);
@@ -1898,7 +1955,7 @@ function render(now, k) {
       ctx.strokeStyle = 'rgba(30,110,220,0.8)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(hb.x0, hb.y0, hb.x1 - hb.x0, hb.y1 - hb.y0);
       const hits = moveOf(p).hits;
-      const arms = CHAR[p.c].weapon === 'twin' ? ['main', 'off'] : ['main'];
+      const arms = p.af >= 0 && moveOf(p).arms.length ? moveOf(p).arms : CHAR[p.c].weapon === 'twin' ? ['main', 'off'] : ['main'];
       for (const arm of arms) {
         const active = p.af >= 0 && hits.some(h => h.arm === arm && p.af >= h.from && p.af <= h.to);
         const sgm = bladeSeg(p, pose, arm, p.rx, p.ry);
