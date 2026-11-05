@@ -880,6 +880,10 @@ function applyHit(att, def, h, i, pt) {
 function damage(att, def, h, pt) {
   if (att.dmgMul) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * att.dmgMul)) };
   const g = game, dmv = def.af >= 0 ? moveOf(def) : null;
+  if (g.story && g.story.survival) {
+    if (att.idx === 0) survivalComboHit();
+    else if (def.idx === 0) g.story.combo = 0;
+  }
   const dir = att.x <= def.x ? 1 : -1;
   def.hp = Math.max(0, def.hp - h.dmg);
   def.fl = 10;
@@ -1193,6 +1197,131 @@ function startStory(charId, stageIdx) {
   storyTalk(st.intro, () => nextWave());
 }
 
+/* ----------------------------- 서바이벌 모드 -----------------------------
+ * 쓰러질 때까지 끝없는 웨이브. 웨이브마다 적이 늘고 강해지며 5웨이브마다 영웅 보스가 나온다.
+ * 점수 = 격파 점수 × 콤보 배율(연속 타격 50회에서 최대 ×2) + 웨이브 보너스.
+ */
+const SURV_POINTS = { sword: 100, pike: 120, archer: 150, elite: 400 };
+const SURV_BOSS_POINTS = 1500;
+const SURV_FACTIONS = ['yellow', 'dong', 'yuan', 'wei', 'shu'];
+const COMBO_KEEP = 150;
+const SURV_HP_MUL = 2.5;
+
+function startSurvival(charId) {
+  const hc = $('handicap').checked;
+  game = {
+    mode: 'story', me: 0, code: '', handicap: hc,
+    players: [], phase: PHASE.FIGHT, pt: 0, round: 1, frame: 0, hitstop: 0, winner: -1,
+    inputs: [newInput()], pending: [], lastF: -1, seen: new Set(), ai: null, lastRecv: performance.now(),
+    projs: [], items: [],
+    story: {
+      survival: true, c: charId, idx: 0, st: { name: '서바이벌', hanja: '無雙', faction: 'yellow', max: 4, waves: [] },
+      wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
+      phase: 'fight', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
+      score: 0, combo: 0, comboT: 0, maxCombo: 0, hpMul: 1, dmgMul: 1, maxEngaged: MAX_ENGAGED,
+    },
+  };
+  const me = makePlayer(0, charId, hc);
+  me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * SURV_HP_MUL);
+  me.x = me.rx = W / 2;
+  game.players.push(me);
+  enterGame();
+  nextSurvivalWave();
+}
+
+function nextSurvivalWave() {
+  const g = game, S = g.story;
+  S.wave++;
+  const n = S.wave + 1;
+  S.phase = 'fight';
+  if (n > 1) {
+    const bonus = (n - 1) * 100;
+    S.score += bonus;
+    emit({ k: 'score', x: r1(g.players[0].x), y: r1(g.players[0].y - 150), d: bonus, wave: 1 });
+    storyHeal(0.15);
+  }
+  S.st.faction = SURV_FACTIONS[(n - 1) % SURV_FACTIONS.length];
+  S.st.max = Math.min(8, 4 + Math.floor(n / 3));
+  S.maxEngaged = Math.min(3, MAX_ENGAGED + Math.floor(n / 8));
+  S.hpMul = 1 + 0.05 * (n - 1);
+  S.dmgMul = Math.min(2, 1 + 0.035 * (n - 1));
+  const total = Math.min(24, Math.round(4 + n * 1.2));
+  const archers = Math.floor(total * Math.min(0.35, 0.1 + n * 0.02));
+  const elites = n >= 4 ? Math.min(4, Math.floor((n - 1) / 3)) : 0;
+  const pikes = Math.floor((total - archers - elites) * 0.4);
+  const swords = Math.max(0, total - archers - elites - pikes);
+  const queue = [];
+  const push = (t, k) => { for (let i = 0; i < k; i++) queue.push(t); };
+  push('sword', swords); push('pike', pikes); push('archer', archers); push('elite', elites);
+  for (let i = queue.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [queue[i], queue[j]] = [queue[j], queue[i]]; }
+  S.queue = queue; S.spawnT = 40;
+  if (n % 5 === 0) {
+    const pool = CHARACTERS.filter(h => h.id !== S.c);
+    const c = pool[(Math.random() * pool.length) | 0].id;
+    const e = spawnEnemy(c, { isBoss: true, dmgMul: STORY_BOSS_DMG * S.dmgMul });
+    e.maxHp = e.hp = e.hpLag = Math.round(BASE_HP * CHAR[c].hp * (1.3 + 0.15 * (n / 5)) * STORY_BOSS_HP);
+    e.mp = 30; e.grunt = false; e.noGuard = false;
+    S.boss = e;
+    S.queue = queue.slice(0, Math.ceil(queue.length / 2));
+    storyBanner(`제 ${n} 웨이브 · 적장 출현!`, `${CHAR[c].hanja} ${CHAR[c].name}`, '#e0463a');
+  } else {
+    storyBanner(`제 ${n} 웨이브`, `${FACTIONS[S.st.faction].name} ${total}명`);
+  }
+}
+
+function survivalScore(def) {
+  const S = game.story;
+  const base = def === S.boss ? SURV_BOSS_POINTS : SURV_POINTS[def.c] || 100;
+  const pts = Math.round(base * (1 + Math.min(1, S.combo / 50)));
+  S.score += pts;
+  emit({ k: 'score', x: r1(def.x), y: r1(def.y - 120), d: pts });
+}
+
+function survivalComboHit() {
+  const S = game.story;
+  S.combo++; S.comboT = COMBO_KEEP;
+  S.maxCombo = Math.max(S.maxCombo, S.combo);
+}
+
+/* 랭킹: 이 기기(localStorage)는 항상 저장한다. RANK_DB_URL에 Firebase Realtime Database 주소를 넣으면 전체 랭킹도 함께 쓴다. */
+const RANK_DB_URL = 'https://stick-brawl-14e05-default-rtdb.asia-southeast1.firebasedatabase.app';
+const RANK_KEY = 'sb_rank_v1';
+const RANK_SIZE = 10;
+
+const cleanName = s => (String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 10) || '무명');
+const validRec = r => r && typeof r.name === 'string' && Number.isFinite(r.score) && Number.isFinite(r.ts);
+
+const Rank = {
+  all() { try { return JSON.parse(localStorage.getItem(RANK_KEY)) || {}; } catch (e) { return {}; } },
+  local(c) { return (this.all()[c] || []).filter(validRec); },
+  addLocal(c, rec) {
+    const all = this.all();
+    const list = (all[c] || []).filter(validRec);
+    list.push(rec);
+    list.sort((a, b) => b.score - a.score || a.ts - b.ts);
+    all[c] = list.slice(0, RANK_SIZE);
+    try { localStorage.setItem(RANK_KEY, JSON.stringify(all)); } catch (e) { /* 저장 불가 */ }
+    const pos = all[c].indexOf(rec);
+    return pos >= 0 ? pos + 1 : 0;
+  },
+  async push(c, rec) {
+    if (!RANK_DB_URL) return false;
+    try {
+      const res = await fetch(`${RANK_DB_URL}/survival/${c}.json`, { method: 'POST', body: JSON.stringify(rec) });
+      return res.ok;
+    } catch (e) { return false; }
+  },
+  async global(c) {
+    if (!RANK_DB_URL) return null;
+    try {
+      const res = await fetch(`${RANK_DB_URL}/survival/${c}.json?orderBy=%22score%22&limitToLast=${RANK_SIZE}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return Object.values(data || {}).filter(validRec).sort((a, b) => b.score - a.score).slice(0, RANK_SIZE);
+    } catch (e) { return null; }
+  },
+};
+
 function storyBanner(text, sub, col = PAPER_LIGHT) {
   game.story.banner = { text, sub, col, t0: game.frame };
 }
@@ -1233,6 +1362,7 @@ function spawnEnemy(type, opts = {}) {
     e.body = fac.body; e.helm = fac.helm; e.band = fac.band;
     e.grunt = !ch.elite;
     e.noGuard = !ch.elite;
+    if (S.survival) { e.maxHp = e.hp = e.hpLag = Math.round(e.maxHp * S.hpMul); e.dmgMul = S.dmgMul; }
   }
   Object.assign(e, opts);
   g.players.push(e);
@@ -1298,7 +1428,12 @@ function onStoryKO(def, att) {
   }
   S.kills++;
   emit({ k: def === S.boss ? 'ko' : 'gko', x: r1(def.x), y: r1(def.y - 60), t: def.idx });
-  if (def.grunt && Math.random() < 0.15) g.items.push({ x: def.x, y: GROUND - 10, life: 600 });
+  if (def.grunt && Math.random() < (S.survival ? 0.16 : 0.15)) g.items.push({ x: def.x, y: GROUND - 10, life: 600 });
+  if (S.survival) {
+    survivalScore(def);
+    if (def === S.boss) { S.boss = null; g.hitstop = 16; storyHeal(0.25); }
+    return;
+  }
   if (def === S.boss) {
     S.phase = 'clear'; S.phaseT = 0; g.hitstop = 20;
     for (const e of storyFoes()) e.flee = true;
@@ -1314,6 +1449,7 @@ function storyStep() {
   const me = g.players[0];
   const fighting = S.phase === 'fight' && me.st !== ST.KO;
   if (fighting) S.time++;
+  if (S.comboT > 0 && --S.comboT === 0) S.combo = 0;
 
   if (S.phase === 'fight' && S.queue.length && storyFoes().length < S.st.max && --S.spawnT <= 0) {
     spawnEnemy(S.queue.shift());
@@ -1322,7 +1458,7 @@ function storyStep() {
   if (g.frame % 20 === 0) {
     const melee = storyFoes().filter(e => e.grunt && e.c !== 'archer' && !e.flee);
     melee.sort((a, b) => Math.abs(a.x - me.x) - Math.abs(b.x - me.x));
-    S.engaged = new Set(melee.slice(0, MAX_ENGAGED).map(e => e.idx));
+    S.engaged = new Set(melee.slice(0, S.maxEngaged || MAX_ENGAGED).map(e => e.idx));
   }
 
   const enemies = g.players.filter(p => p.idx !== 0);
@@ -1352,7 +1488,8 @@ function storyStep() {
   g.players = g.players.filter(p => p.idx === 0 || !(p.gone || (p.st === ST.KO && p.kt > 70)));
 
   if (S.phase === 'fight' && !S.queue.length && storyFoes().length === 0) {
-    if (S.wave < S.st.waves.length - 1) nextWave();
+    if (S.survival) nextSurvivalWave();
+    else if (S.wave < S.st.waves.length - 1) nextWave();
     else if (!S.bossSpawned) {
       S.bossSpawned = true;
       spawnBoss();
@@ -1362,7 +1499,8 @@ function storyStep() {
   if (S.phase === 'clear' || S.phase === 'fail') {
     S.phaseT++;
     if (S.phaseT === 130) {
-      if (S.phase === 'clear') storyTalk(S.st.outro, () => showStoryResult(true));
+      if (S.survival) showSurvivalResult();
+      else if (S.phase === 'clear') storyTalk(S.st.outro, () => showStoryResult(true));
       else showStoryResult(false);
     }
   }
@@ -1508,6 +1646,94 @@ function showStoryResult(win) {
     ? (S.idx + 1 >= total ? `「${STORIES[S.c].title}」 완결! 천하에 이름을 떨쳤다.` : '다음 전장으로 나아가자.')
     : '다시 도전해 보세요. 막기와 발차기를 섞어 보세요!';
   $('storyResult').classList.remove('hidden');
+}
+
+const fmtSecs = s => `${Math.floor(s / 60)}분 ${String(s % 60).padStart(2, '0')}초`;
+const fmtDate = ts => {
+  const d = new Date(ts), z = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${z(d.getMonth() + 1)}.${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+};
+const escHtml = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+function showSurvivalResult() {
+  const S = game.story;
+  S.phase = 'result';
+  const secs = Math.round(S.time / 60);
+  S.record = { name: '', score: S.score, kills: S.kills, wave: S.wave + 1, time: secs, combo: S.maxCombo, ts: Date.now(), c: S.c };
+  const best = Rank.local(S.c)[0];
+  const ch = CHAR[S.c];
+  $('survTitle').textContent = `${ch.hanja} ${ch.name} 전사…`;
+  $('survSub').textContent = !best || S.score > best.score ? '이 기기 최고 기록!' : `이 기기 최고 기록 ${best.score.toLocaleString()}점`;
+  $('survStats').innerHTML = [
+    ['점수', S.score.toLocaleString()],
+    ['격파', `${S.kills}명`],
+    ['웨이브', `${S.wave + 1}`],
+    ['생존', fmtSecs(secs)],
+    ['최대 콤보', `${S.maxCombo}`],
+  ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+  $('survName').value = localStorage.getItem('sb_name') || '';
+  $('survName').disabled = false;
+  $('survSave').disabled = S.score <= 0;
+  $('survSave').textContent = '기록 남기기';
+  $('survMsg').textContent = S.score > 0 ? '이름을 남기면 랭킹에 기록돼요.' : '';
+  $('survResult').classList.remove('hidden');
+}
+
+async function saveSurvivalRecord() {
+  const S = game && game.story;
+  if (!S || !S.record || S.recordSaved) return;
+  const name = cleanName($('survName').value);
+  localStorage.setItem('sb_name', name);
+  const rec = { ...S.record, name };
+  S.recordSaved = true;
+  $('survSave').disabled = true; $('survName').disabled = true;
+  const pos = Rank.addLocal(S.c, rec);
+  let msg = pos ? `이 기기 랭킹 ${pos}위에 기록됐어요!` : '이 기기 랭킹 10위 안에는 들지 못했어요.';
+  $('survMsg').textContent = msg + (RANK_DB_URL ? ' 전체 랭킹에 올리는 중…' : '');
+  if (RANK_DB_URL) {
+    const ok = await Rank.push(S.c, rec);
+    $('survMsg').textContent = msg + (ok ? ' 전체 랭킹에도 올라갔어요.' : ' (전체 랭킹 전송 실패)');
+  }
+  $('survSave').textContent = '기록 완료';
+}
+
+let rankChar = null, rankScope = 'local';
+
+async function buildRankScreen() {
+  const c = rankChar || selectedChar;
+  rankChar = c;
+  const tabs = $('rankTabs');
+  tabs.innerHTML = '';
+  for (const h of CHARACTERS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'story-tab' + (h.id === c ? ' on' : '');
+    b.textContent = h.name;
+    b.addEventListener('click', () => { rankChar = h.id; buildRankScreen(); });
+    tabs.appendChild(b);
+  }
+  $('rankLocal').classList.toggle('on', rankScope === 'local');
+  $('rankGlobal').classList.toggle('on', rankScope === 'global');
+  const body = $('rankBody');
+  const note = $('rankNote');
+  let list;
+  if (rankScope === 'global') {
+    if (!RANK_DB_URL) {
+      body.innerHTML = '';
+      note.textContent = '전체 랭킹은 아직 설정되지 않았어요. (README의 "전체 랭킹 설정" 참고)';
+      return;
+    }
+    note.textContent = '불러오는 중…';
+    list = await Rank.global(c);
+    if (rankChar !== c || rankScope !== 'global') return;
+    if (!list) { body.innerHTML = ''; note.textContent = '전체 랭킹을 불러오지 못했어요.'; return; }
+  } else {
+    list = Rank.local(c);
+  }
+  note.textContent = list.length ? '' : '아직 기록이 없어요. 서바이벌에 도전해 보세요!';
+  body.innerHTML = list.map((r, i) => `<tr${i < 3 ? ` class="top${i + 1}"` : ''}>
+    <td>${i + 1}</td><td class="nm">${escHtml(cleanName(r.name))}</td><td class="sc">${Math.round(r.score).toLocaleString()}</td>
+    <td>${r.kills | 0}</td><td>${r.wave | 0}</td><td>${fmtSecs(r.time | 0)}</td><td class="dt">${fmtDate(r.ts)}</td></tr>`).join('');
 }
 
 /* ----------------------------- 네트워크 (PeerJS) -----------------------------
@@ -2040,6 +2266,9 @@ function handleEvent(ev) {
       Sound.hit(true);
       sparks(ev.x, ev.y, 12, 'rgba(31,26,23,', 6);
       fx.shake = Math.max(fx.shake, 6);
+      break;
+    case 'score':
+      popText(ev.x, ev.y, `+${ev.d}${ev.wave ? ' 웨이브 보너스' : ''}`, ev.wave ? 22 : 18, '#c98a12', 45);
       break;
     case 'heal':
       Sound.tone(660, 990, 0.18, 'triangle', 0.2);
@@ -2642,6 +2871,29 @@ function drawStoryHUD(c) {
     c.fillText(`남은 적 ${left}`, W - 26, 50);
   }
   c.textAlign = 'center'; c.fillStyle = INK;
+  if (S.survival) {
+    c.font = `900 26px ${SERIF}`; c.fillStyle = RED;
+    c.fillText(`${S.score.toLocaleString()}점`, W / 2, 82);
+    c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.65)';
+    c.fillText(`서바이벌 · 제 ${Math.max(1, S.wave + 1)} 웨이브`, W / 2, 100);
+    if (S.combo >= 3) {
+      const mult = 1 + Math.min(1, S.combo / 50);
+      const pop = 1 + Math.max(0, S.comboT - COMBO_KEEP + 8) * 0.04;
+      c.save();
+      c.translate(W - 120, 150); c.scale(pop, pop);
+      c.font = `900 34px ${SERIF}`; c.textAlign = 'center';
+      c.lineWidth = 5; c.strokeStyle = PAPER_LIGHT;
+      c.strokeText(`${S.combo} HITS`, 0, 0);
+      c.fillStyle = S.combo >= 50 ? '#c98a12' : RED; c.fillText(`${S.combo} HITS`, 0, 0);
+      c.font = '900 14px sans-serif'; c.fillStyle = INK;
+      c.fillText(`점수 ×${mult.toFixed(1)}`, 0, 20);
+      const bar = S.comboT / COMBO_KEEP;
+      c.fillStyle = 'rgba(31,26,23,0.15)'; c.fillRect(-50, 28, 100, 4);
+      c.fillStyle = RED; c.fillRect(-50, 28, 100 * bar, 4);
+      c.restore();
+    }
+    return;
+  }
   c.font = `900 22px ${SERIF}`;
   c.fillText(S.st.hanja, W / 2, 80);
   c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.6)';
@@ -2718,7 +2970,7 @@ function drawPhaseBanner(c) {
   if (g.mode === 'story') {
     const S = g.story;
     if (S.phase === 'clear') drawBanner(c, '승리!', `${S.st.name} 평정`, 76, '#e8b04a', S.phaseT / 10);
-    else if (S.phase === 'fail') drawBanner(c, '패배…', '다시 일어서라', 70, '#e0463a', S.phaseT / 10);
+    else if (S.phase === 'fail') drawBanner(c, S.survival ? '전사…' : '패배…', S.survival ? `${S.score.toLocaleString()}점 · ${S.kills}명 격파` : '다시 일어서라', 70, '#e0463a', S.phaseT / 10);
     else if (S.banner && g.frame - S.banner.t0 < 90) {
       const t = g.frame - S.banner.t0;
       drawBanner(c, S.banner.text, S.banner.sub, 60, S.banner.col, t / 10);
@@ -3103,8 +3355,10 @@ function showScreen(name) {
   $('menu').classList.toggle('hidden', name !== 'menu');
   $('lobby').classList.toggle('hidden', name !== 'lobby');
   $('storyScreen').classList.toggle('hidden', name !== 'story');
-  if (name !== 'game') { $('talk').classList.add('hidden'); $('storyResult').classList.add('hidden'); }
+  $('rankScreen').classList.toggle('hidden', name !== 'rank');
+  if (name !== 'game') { $('talk').classList.add('hidden'); $('storyResult').classList.add('hidden'); $('survResult').classList.add('hidden'); }
   if (name === 'story') buildStoryScreen();
+  if (name === 'rank') buildRankScreen();
   const inGame = name === 'game';
   $('pad').classList.toggle('hidden', !inGame);
   $('exitBtn').classList.toggle('hidden', !inGame);
@@ -3257,6 +3511,16 @@ function buildMenu() {
   });
   $('cancelBtn').addEventListener('click', () => { netClose(); showScreen('menu'); });
   $('storyBtn').addEventListener('click', () => { Sound.init(); menuMsg(''); storyChar = selectedChar; showScreen('story'); });
+  $('survivalBtn').addEventListener('click', () => { Sound.init(); goFullscreen(); menuMsg(''); startSurvival(selectedChar); });
+  $('rankBtn').addEventListener('click', () => { rankChar = selectedChar; showScreen('rank'); });
+  $('rankBack').addEventListener('click', () => showScreen('menu'));
+  $('rankLocal').addEventListener('click', () => { rankScope = 'local'; buildRankScreen(); });
+  $('rankGlobal').addEventListener('click', () => { rankScope = 'global'; buildRankScreen(); });
+  $('survSave').addEventListener('click', saveSurvivalRecord);
+  $('survName').addEventListener('keydown', e => { if (e.key === 'Enter') saveSurvivalRecord(); });
+  $('survRetry').addEventListener('click', () => { const c = game.story.c; leaveGame('menu'); startSurvival(c); });
+  $('survRanking').addEventListener('click', () => { rankChar = game.story.c; leaveGame('rank'); });
+  $('survMenu').addEventListener('click', () => leaveGame('menu'));
   $('storyBack').addEventListener('click', () => showScreen('menu'));
   $('talk').addEventListener('click', advanceTalk);
   $('resultNext').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx + 1); });
@@ -3268,7 +3532,8 @@ function buildMenu() {
     catch (e) { lobbyMsg(url); }
   });
   $('exitBtn').addEventListener('click', () => {
-    if (game && game.mode === 'story') { storyChar = game.story.c; leaveGame('story'); } else leaveGame();
+    if (game && game.mode === 'story' && game.story.survival) leaveGame('menu');
+    else if (game && game.mode === 'story') { storyChar = game.story.c; leaveGame('story'); } else leaveGame();
   });
   $('soundOpt').addEventListener('change', e => { Sound.enabled = e.target.checked; localStorage.setItem('sb_sound', e.target.checked ? '1' : '0'); });
   $('hitboxOpt').addEventListener('change', e => { showHitbox = e.target.checked; });

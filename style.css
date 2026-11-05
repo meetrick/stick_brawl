@@ -722,6 +722,151 @@ button.story {
   flex-wrap: wrap;
 }
 
+/* ---------- 서바이벌 / 랭킹 ---------- */
+button.survival {
+  background: #8a2a1a;
+}
+
+#survResult {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 26, 23, 0.45);
+}
+
+#survResult .result-card {
+  padding: 2.4vh 3vw;
+}
+
+#survSub, #survMsg {
+  margin: 0.4vh 0 1vh;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: clamp(11px, 3.2vh, 15px);
+}
+
+#survMsg {
+  color: #2e7d3a;
+  min-height: 1.2em;
+}
+
+.result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3vw;
+  margin-bottom: 1.4vh;
+}
+
+.result-stats span {
+  display: block;
+  font-size: clamp(10px, 2.8vh, 13px);
+  color: var(--ink-soft);
+}
+
+.result-stats b {
+  font-family: var(--serif);
+  font-size: clamp(15px, 4.6vh, 22px);
+}
+
+.surv-name {
+  display: flex;
+  justify-content: center;
+  gap: 1vw;
+}
+
+#survName {
+  width: 11em;
+  height: clamp(32px, 9vh, 46px);
+  padding: 0 0.6em;
+  font-size: clamp(13px, 3.8vh, 18px);
+  font-weight: 700;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fffaf0;
+  color: var(--ink);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+#rankScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vh;
+}
+
+.rank-scope {
+  margin-left: auto;
+  display: flex;
+  gap: 0.8vw;
+}
+
+#rankTabs {
+  display: flex;
+  gap: 1vw;
+  flex-wrap: wrap;
+}
+
+.rank-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid var(--ink-soft);
+  border-radius: 12px;
+  background: rgba(243, 234, 210, 0.85);
+  padding: 0.6vh 1.2vw;
+}
+
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(10px, 3vh, 14px);
+}
+
+.rank-table th {
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink-soft);
+  border-bottom: 1.5px solid var(--ink-soft);
+  padding: 0.3vh 0.6vw;
+}
+
+.rank-table td {
+  padding: 0.25vh 0.6vw;
+  border-bottom: 1px solid rgba(31, 26, 23, 0.12);
+  white-space: nowrap;
+}
+
+.rank-table td.nm {
+  font-weight: 700;
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-table td.sc {
+  font-family: var(--serif);
+  font-weight: 900;
+  color: var(--red);
+}
+
+.rank-table td.dt {
+  color: var(--ink-soft);
+}
+
+.rank-table tr.top1 td:first-child { color: #c98a12; font-weight: 900; }
+.rank-table tr.top2 td:first-child { color: #7f8a96; font-weight: 900; }
+.rank-table tr.top3 td:first-child { color: #a0622d; font-weight: 900; }
+
+#rankNote {
+  margin: 1vh 0 0;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: clamp(11px, 3vh, 14px);
+}
+
 /* ---------- iOS 홈 화면 추가 안내 ---------- */
 button.pill {
   margin-left: auto;
