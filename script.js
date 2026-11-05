@@ -8,7 +8,7 @@
 /* ----------------------------- 상수 ----------------------------- */
 const W = 960, H = 540, GROUND = 462;
 const TICK_MS = 1000 / 60;
-const PEER_PREFIX = 'stickbrawl-v3-';
+const PEER_PREFIX = 'stickbrawl-v4-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const BASE_HP = 100;
 const GRAVITY = 0.8, MOVE_SPEED = 4.6, JUMP_V = 15.5;
@@ -38,6 +38,7 @@ const WEAPONS = {
   sevenstar: { from: 4,  to: 58,  r: 10, off: 1, grip2: null, tip: 0 },
   spear:     { from: 46, to: 98,  r: 9,  off: 0, grip2: -26, tip: 66, back: -44 },
   pike:      { from: 30, to: 86,  r: 7,  off: 0, grip2: -24, tip: 64, back: -40 },
+  halberd:   { from: 46, to: 104, r: 11, off: 0, grip2: -26, tip: 70, back: -48 },
   saber:     { from: 4,  to: 50,  r: 9,  off: 1, grip2: null, tip: 0 },
   bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
 };
@@ -164,6 +165,35 @@ const CHARACTERS = [
         { from: 4, to: 7, arm: 'main', dmg: 7, kb: 2, up: 1 },
         { from: 10, to: 13, arm: 'main', dmg: 7, kb: 2, up: 1 },
         { from: 16, to: 20, arm: 'main', dmg: 10, kb: 10, up: 6 },
+      ],
+    },
+  },
+  {
+    id: 'lubu', name: '여포', hanja: '呂布', weapon: 'halberd', weaponName: '방천화극 (方天畫戟)',
+    desc: '천하무쌍의 맹장 · 긴 사거리와 강한 베기, 고른 능력치',
+    hp: 1.1, speed: 1.05, jump: 1.05, body: '#8b1a1a', accent: '#c9a227', fx: '#d4892a',
+    stats: { 체력: 4, 속도: 3, 공격력: 4, 공속: 3, 사거리: 4 },
+    idle: { main: [16, 8, -0.7], off: [0, 0, 0], lean: 0 },
+    guard: { main: [14, -6, -1.45], lean: -0.12 },
+    attack: {
+      total: 32, lunge: [11, 6],
+      main: [[8, -10, -4, -0.45], [12, 40, 2, 0.05], [17, 36, 14, 0.6], [22, 34, 14, 0.6]],
+      lean: [[8, -0.15], [12, 0.35], [17, 0.3]],
+      hits: [{ from: 11, to: 17, arm: 'main', dmg: 12, kb: 8, up: 3 }],
+    },
+    special: {
+      name: '천하무쌍', hanja: '天下無雙', desc: '방천화극을 쉴 새 없이 돌리며 돌진해 앞뒤의 적을 모두 휩쓴다 (경직 무시)',
+      total: 62, armor: [0, 50], drive: [6, 44, 4.5], noWeak: true,
+      main: [[6, 20, 0, -1.57, 30], [12, 20, 2, 1.57, 30], [18, 20, 2, 4.71, 30], [24, 20, 2, 7.85, 30], [30, 20, 2, 11.0, 30], [36, 20, 2, 14.1, 30], [42, 20, 2, 17.3, 30], [48, 34, 8, 19.4, 0], [54, 34, 8, 19.4, 0]],
+      lean: [[6, 0.1], [44, 0.1], [48, 0.35]],
+      hits: [
+        { from: 8, to: 12, arm: 'main', dmg: 4, kb: 2, up: 1 },
+        { from: 12, to: 16, arm: 'butt', dmg: 4, kb: 2, up: 1 },
+        { from: 18, to: 22, arm: 'main', dmg: 4, kb: 2, up: 1 },
+        { from: 24, to: 28, arm: 'butt', dmg: 4, kb: 2, up: 1 },
+        { from: 30, to: 34, arm: 'main', dmg: 4, kb: 2, up: 1 },
+        { from: 36, to: 40, arm: 'butt', dmg: 4, kb: 2, up: 1 },
+        { from: 45, to: 51, arm: 'main', dmg: 10, kb: 13, up: 7 },
       ],
     },
   },
@@ -321,6 +351,24 @@ const COMBOS = {
       hits: [{ from: 7, to: 16, arm: 'main', dmg: 8, kb: 3, up: 13 }],
     },
   ],
+  lubu: [
+    {
+      name: '방천 회전', total: 32, noWeak: true, lunge: [[6, 3]],
+      main: [[4, 18, 0, -1.57, 30], [9, 20, 2, 1.57, 30], [14, 20, 2, 4.71, 30], [19, 18, 0, 7.6, 30]],
+      lean: [[4, 0], [14, 0.1], [19, 0.05]],
+      hits: [
+        { from: 6, to: 10, arm: 'main', dmg: 4, kb: 3, up: 1 },
+        { from: 10, to: 14, arm: 'butt', dmg: 4, kb: 3, up: 1 },
+        { from: 14, to: 19, arm: 'main', dmg: 6, kb: 8, up: 3 },
+      ],
+    },
+    {
+      name: '비장 일격', total: 48, fin: true, hop: [7, 9, 6], armor: [6, 26],
+      main: [[7, -8, -28, -2.2], [14, -14, -26, -2.9], [19, 12, -32, -1.4], [24, 36, 0, 0.3], [28, 32, 14, 1.0], [38, 32, 14, 1.0]],
+      lean: [[7, -0.15], [14, -0.3], [22, 0.2], [28, 0.4], [38, 0.35]],
+      hits: [{ from: 19, to: 30, arm: 'main', dmg: 16, kb: 12, up: 7 }],
+    },
+  ],
 };
 
 const CHAR = {};
@@ -396,8 +444,8 @@ const MOVE_CODES = ['n', 's', 'k', 'j', 'p', 'n2', 'n3'];
 const COMBO_MOVES = new Set(['n', 'n2', 'n3', 'k']);
 const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
-const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, sword: 72, pike: 118, archer: 400, elite: 88 };
-const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170, sword: 0, pike: 0, archer: 0, elite: 0 };
+const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, lubu: 132, sword: 72, pike: 118, archer: 400, elite: 88 };
+const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170, lubu: 140, sword: 0, pike: 0, archer: 0, elite: 0 };
 
 /* ----------------------------- 유틸 ----------------------------- */
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -1028,10 +1076,10 @@ const STORIES = {
       {
         name: '호뢰관 전투', hanja: '虎牢關', faction: 'dong', max: 5,
         waves: [[['sword', 4], ['archer', 2]], [['pike', 4], ['archer', 2], ['sword', 2]]],
-        boss: { c: 'elite', name: '화웅', hanja: '華雄', hp: 1.6, with: [['pike', 2], ['archer', 1]] },
+        boss: { c: 'lubu', hp: 1.6, with: [['pike', 2], ['archer', 1]] },
         intro: [['유비', '동탁의 군대가 호뢰관을 막고 있다. 화살을 조심하라!']],
-        bossTalk: [['화웅', '감히 이 화웅의 관문을 넘보느냐!']],
-        outro: [['유비', '관문이 열렸다! 연합군이여, 진격하라!']],
+        bossTalk: [['여포', '사람 중엔 여포, 말 중엔 적토! 누가 감히 내 앞에 서느냐!'], ['유비', '천하무쌍이라 해도 물러설 수는 없다!']],
+        outro: [['여포', '흥, 오늘은 이쯤 해 두지.'], ['유비', '관문이 열렸다! 연합군이여, 진격하라!']],
       },
       {
         name: '서주 혈전', hanja: '徐州血戰', faction: 'wei', max: 6,
@@ -1152,6 +1200,34 @@ const STORIES = {
         intro: [['조자룡', '공자님을 품에 안고… 반드시 주공께 돌아간다!']],
         bossTalk: [['조조', '과연 명불허전! 내가 직접 시험해 보마!'], ['조자룡', '누구도 이 길을 막을 수 없다!']],
         outro: [['조조', '칠진칠출… 저런 장수가 유비에게 있다니.'], ['조자룡', '주공! 공자님은 무사하십니다!']],
+      },
+    ],
+  },
+  lubu: {
+    title: '무쌍의 길', hanja: '無雙之道', stages: [
+      {
+        name: '호뢰관 삼영전', hanja: '虎牢關', faction: 'yuan', max: 5,
+        waves: [[['sword', 4], ['pike', 2]], [['pike', 3], ['archer', 2], ['sword', 3]]],
+        boss: { c: 'zhangfei', hp: 1.8, with: [['sword', 2]] },
+        intro: [['여포', '연합군 따위가 몰려와 봐야 소용없다. 이 방천화극을 받아라!']],
+        bossTalk: [['장비', '세 성을 섬긴 종놈아! 이 장익덕이 상대해 주마!'], ['여포', '시끄러운 놈이로군. 덤벼라!']],
+        outro: [['장비', '큭… 형님들이 오기 전에 쓰러질 순 없는데!'], ['여포', '천하에 나를 당할 자는 없다!']],
+      },
+      {
+        name: '서주 탈취', hanja: '徐州', faction: 'shu', max: 5,
+        waves: [[['sword', 4], ['archer', 2]], [['pike', 4], ['sword', 3]], [['archer', 3], ['pike', 3], ['sword', 2]]],
+        boss: { c: 'liubei', hp: 1.9, with: [['sword', 2], ['archer', 1]] },
+        intro: [['여포', '유비가 성을 비운 틈이다. 서주는 내가 차지한다!']],
+        bossTalk: [['유비', '은혜를 원수로 갚는구려, 여포!'], ['여포', '난세에 은혜 따위가 무슨 소용이냐!']],
+        outro: [['유비', '…오늘은 물러나지만, 백성은 그대를 따르지 않을 것이오.'], ['여포', '서주는 이제 내 것이다!']],
+      },
+      {
+        name: '하비성 결전', hanja: '下邳', faction: 'wei', max: 6,
+        waves: [[['pike', 4], ['sword', 3]], [['archer', 4], ['sword', 3]], [['sword', 4], ['pike', 3], ['archer', 2]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['sword', 2], ['archer', 2]] },
+        intro: [['여포', '조조의 대군이 하비성을 에워쌌다. 끝까지 싸운다!']],
+        bossTalk: [['조조', '여포, 그대의 무용은 아깝지만 여기까지다.'], ['여포', '천하무쌍 여포가 쉽게 쓰러질 것 같으냐!']],
+        outro: [['조조', '…저 무용, 과연 천하무쌍이로다.'], ['여포', '하비성은 무너지지 않는다!']],
       },
     ],
   },
@@ -2579,6 +2655,24 @@ function drawWeapon(c, type, hx, hy, ang, s, now, ink, grip = 0) {
       c.fillStyle = '#a8322a'; c.fillRect(60, -2.5, 4, 5);
       break;
     }
+    case 'halberd': {
+      strokeLine(c, -48, 0, 76, 0, '#4a1c14', 3.6);
+      c.fillStyle = '#c9a227';
+      c.beginPath(); c.moveTo(-48, -2); c.lineTo(-56, 0); c.lineTo(-48, 2); c.closePath(); c.fill();
+      tassel(c, 70, now, '#c0392b', 13);
+      c.beginPath(); c.moveTo(76, -3); c.lineTo(104, 0); c.lineTo(76, 3); c.closePath();
+      c.fillStyle = silver; c.fill(); c.strokeStyle = ink; c.lineWidth = 1.1; c.stroke();
+      for (const sd of [-1, 1]) {
+        c.beginPath();
+        c.moveTo(77, sd * 2.5);
+        c.quadraticCurveTo(80, sd * 17, 95, sd * 16);
+        c.quadraticCurveTo(86, sd * 11, 89, sd * 3.5);
+        c.closePath();
+        c.fill(); c.stroke();
+      }
+      c.fillStyle = '#c9a227'; c.fillRect(72, -3.5, 5, 7);
+      break;
+    }
     case 'saber': {
       strokeLine(c, -8, 0, 0, 0, '#4a3524', 3.6);
       strokeLine(c, 0, -5, 0, 5, '#6b6b6b', 3);
@@ -2681,6 +2775,19 @@ function drawHead(c, ch, p, pose, now, ink) {
   if (ch.id === 'liubei') bandTails(ch.accent, false);
   if (ch.id === 'zhaoyun') bandTails(ch.accent, true);
 
+  if (ch.id === 'lubu') {
+    const sway = Math.sin(now * 0.008 + p.idx) * 4 - drag * 1.5 + (p.g ? 0 : clamp(p.vy, -8, 8));
+    for (const [ox, k, w] of [[-2, 1, 3.2], [2, 0.86, 2.4]]) {
+      c.strokeStyle = '#7a3b12'; c.lineWidth = w;
+      c.beginPath();
+      c.moveTo(hd.x + ox, hd.y - R - 3);
+      c.bezierCurveTo(hd.x + ox - 6, hd.y - R - 26 * k, hd.x - 30 * k + sway, hd.y - R - 46 * k, hd.x - 54 * k + sway * 1.5, hd.y - R - 32 * k);
+      c.stroke();
+      c.strokeStyle = '#e8c547'; c.lineWidth = 1;
+      c.setLineDash([3, 5]); c.stroke(); c.setLineDash([]);
+    }
+  }
+
   if (ch.id === 'zhangfei') {
     c.strokeStyle = ink; c.lineWidth = 2.6;
     c.beginPath();
@@ -2720,6 +2827,14 @@ function drawHead(c, ch, p, pose, now, ink) {
     c.beginPath(); c.moveTo(hd.x - 9, hd.y - 7); c.lineTo(hd.x - 6, hd.y - 19); c.lineTo(hd.x + 6, hd.y - 19); c.lineTo(hd.x + 9, hd.y - 7); c.closePath(); c.fill();
     strokeLine(c, hd.x - 10, hd.y - 16, hd.x + 10, hd.y - 16, ink, 2);
     c.fillStyle = '#c9a227'; c.beginPath(); c.arc(hd.x + 1, hd.y - 12, 2, 0, Math.PI * 2); c.fill();
+  } else if (ch.id === 'lubu') {
+    c.fillStyle = '#c9a227';
+    c.beginPath();
+    c.moveTo(hd.x - 10, hd.y - 5); c.lineTo(hd.x - 8, hd.y - 15); c.lineTo(hd.x - 3, hd.y - 11);
+    c.lineTo(hd.x + 1, hd.y - 18); c.lineTo(hd.x + 5, hd.y - 11); c.lineTo(hd.x + 10, hd.y - 15); c.lineTo(hd.x + 10, hd.y - 5);
+    c.closePath(); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = '#6a2c8f'; c.beginPath(); c.arc(hd.x + 1, hd.y - 9, 2.2, 0, TAU); c.fill();
   }
 
   // 눈
@@ -2728,7 +2843,7 @@ function drawHead(c, ch, p, pose, now, ink) {
     c.beginPath(); c.moveTo(hd.x + 3, hd.y - 3); c.lineTo(hd.x + 7, hd.y + 1); c.moveTo(hd.x + 7, hd.y - 3); c.lineTo(hd.x + 3, hd.y + 1); c.stroke();
   } else {
     c.fillStyle = ink; c.beginPath(); c.arc(hd.x + 5, hd.y - 0.5, 1.7, 0, Math.PI * 2); c.fill();
-    if (ch.id === 'zhangfei' || ch.id === 'guanyu') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
+    if (ch.id === 'zhangfei' || ch.id === 'guanyu' || ch.id === 'lubu') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
   }
 
   // 관우의 긴 수염 (bezierCurveTo)
@@ -2787,6 +2902,10 @@ function drawFighter(c, p, now, ox, oy, alpha) {
     const fl = Math.sin(now * 0.012 + p.idx) * 2;
     c.strokeStyle = ch.accent; c.lineWidth = 2.5;
     c.beginPath(); c.moveTo(bx - 5, by); c.quadraticCurveTo(bx - 12, by + 5 + fl, bx - 15 - clamp(p.vx * p.f, -4, 8), by + 13 + fl); c.stroke();
+  } else if (ch.id === 'lubu') {
+    const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.15, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.15;
+    strokeLine(c, bx - 6, by + 1, bx + 6, by - 1, ch.accent, 4);
+    strokeLine(c, pose.sh.x - 5, pose.sh.y + 2, pose.sh.x + 5, pose.sh.y + 1, ch.accent, 4.5);
   } else if (ch.id === 'liubei') {
     const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.15, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.15;
     strokeLine(c, bx - 5, by + 1, bx + 5, by - 1, ch.accent, 3.5);
@@ -3585,6 +3704,27 @@ function selectChar(id) {
     for (let i = 0; i < 5; i++) { const d = document.createElement('i'); d.className = 'pip' + (i < v ? ' on' : ''); pips.appendChild(d); }
     stats.append(l, pips);
   }
+  fitInfoText();
+}
+
+/* 설명 글은 칸 높이가 고정이므로, 무기 설명은 한 줄·필살기는 두 줄에 들어갈 때까지 글자를 줄인다. */
+function fitText(el, maxLines, maxPx, minPx) {
+  let size = maxPx;
+  el.style.fontSize = size + 'px';
+  el.classList.add('fitting');
+  const fits = () => (maxLines === 1 ? el.scrollWidth <= el.clientWidth + 1 : el.scrollHeight <= size * 1.35 * maxLines + 2);
+  while (!fits() && size > minPx) {
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+  }
+  el.classList.remove('fitting');
+}
+
+function fitInfoText() {
+  if ($('menu').classList.contains('hidden')) return;
+  const base = clamp(window.innerHeight * 0.03, 11, 14);
+  fitText($('infoDesc'), 1, base, 9);
+  fitText($('infoSpecial'), 2, base, 9);
 }
 
 function sizePreviews() {
@@ -3594,6 +3734,7 @@ function sizePreviews() {
     pv.cv.width = Math.round(r.width * view.dpr);
     pv.cv.height = Math.round(r.height * view.dpr);
   }
+  fitInfoText();
 }
 
 function renderPreviews(now, k) {
