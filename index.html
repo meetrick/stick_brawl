@@ -18,7 +18,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23e6ddc5'/%3E%3Ccircle cx='380' cy='130' r='60' fill='%23b8322a' opacity='.85'/%3E%3Cpath d='M300 250 L440 90' stroke='%238a9099' stroke-width='16' stroke-linecap='round'/%3E%3Cg stroke='%231f1a17' stroke-width='24' stroke-linecap='round' fill='none'%3E%3Ccircle cx='230' cy='140' r='42' fill='%23f3ead2'/%3E%3Cpath d='M230 182 L220 300 M220 300 L170 410 M220 300 L280 405 M226 215 L300 250 M226 215 L160 260'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="apple-touch-icon" id="appleIcon" href="">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=8">
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -69,6 +69,8 @@
         </div>
         <button id="practiceBtn" type="button">연습 (CPU)</button>
         <button id="storyBtn" class="primary story" type="button">스토리</button>
+        <button id="survivalBtn" class="primary survival" type="button">서바이벌</button>
+        <button id="rankBtn" type="button">랭킹</button>
       </div>
 
       <div class="options">
@@ -103,6 +105,44 @@
       <div id="stageList"></div>
       <p class="story-tip">병졸을 쓸어버리고 적장을 쓰러뜨려라! 궁병의 화살은 막거나, 점프로 피하거나, 무기로 쳐낼 수 있어요.</p>
     </section>
+
+    <!-- 서바이벌 랭킹 -->
+    <section id="rankScreen" class="screen hidden">
+      <div class="story-head">
+        <button id="rankBack" type="button">← 메뉴</button>
+        <h2>서바이벌 랭킹</h2>
+        <div class="rank-scope">
+          <button id="rankLocal" class="story-tab" type="button">이 기기</button>
+          <button id="rankGlobal" class="story-tab" type="button">전체</button>
+        </div>
+      </div>
+      <div id="rankTabs"></div>
+      <div class="rank-wrap">
+        <table class="rank-table">
+          <thead><tr><th>순위</th><th>이름</th><th>점수</th><th>격파</th><th>웨이브</th><th>생존</th><th>기록 일시</th></tr></thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+        <p id="rankNote"></p>
+      </div>
+    </section>
+
+    <div id="survResult" class="hidden">
+      <div class="result-card">
+        <h2 id="survTitle"></h2>
+        <p id="survSub"></p>
+        <div id="survStats" class="result-stats"></div>
+        <div class="surv-name">
+          <input id="survName" type="text" maxlength="10" placeholder="이름 (최대 10자)" autocomplete="off" spellcheck="false">
+          <button id="survSave" class="primary" type="button">기록 남기기</button>
+        </div>
+        <p id="survMsg"></p>
+        <div class="result-actions">
+          <button id="survRetry" class="primary" type="button">다시 도전</button>
+          <button id="survRanking" type="button">랭킹 보기</button>
+          <button id="survMenu" type="button">메뉴</button>
+        </div>
+      </div>
+    </div>
 
     <div id="talk" class="hidden">
       <div class="talk-box">
@@ -151,6 +191,6 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=8"></script>
 </body>
 </html>
