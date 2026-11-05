@@ -8,7 +8,7 @@
 /* ----------------------------- 상수 ----------------------------- */
 const W = 960, H = 540, GROUND = 462;
 const TICK_MS = 1000 / 60;
-const PEER_PREFIX = 'stickbrawl-v2-';
+const PEER_PREFIX = 'stickbrawl-v3-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const BASE_HP = 100;
 const GRAVITY = 0.8, MOVE_SPEED = 4.6, JUMP_V = 15.5;
@@ -22,6 +22,7 @@ const METER_MAX = 100, GUARD_MAX = 100, PARRY_WINDOW = 7, GUARD_RANGE = 280;
 const SK = { hip: 52, torso: 40, neck: 5, headR: 11, upper: 22, fore: 22, thigh: 28, shin: 27 };
 const INK = '#1f1a17', PAPER = '#e6ddc5', PAPER_LIGHT = '#f3ead2', RED = '#a8322a';
 const SERIF = '"Noto Serif KR","Nanum Myeongjo","AppleMyungjo","Batang","Songti SC",serif';
+const TAU = Math.PI * 2;
 const HAN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 
 /* ----------------------------- 무기 / 캐릭터 정의 -----------------------------
@@ -32,11 +33,11 @@ const HAN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', 
  */
 const WEAPONS = {
   twin:      { from: 4,  to: 36,  r: 7,  off: 0, grip2: null, tip: 0 },
-  glaive:    { from: 34, to: 104, r: 15, off: 4, grip2: -26, tip: 62 },
-  serpent:   { from: 50, to: 110, r: 8,  off: 0, grip2: -28, tip: 74 },
+  glaive:    { from: 34, to: 104, r: 15, off: 4, grip2: -26, tip: 62, back: -46 },
+  serpent:   { from: 50, to: 110, r: 8,  off: 0, grip2: -28, tip: 74, back: -52 },
   sevenstar: { from: 4,  to: 58,  r: 10, off: 1, grip2: null, tip: 0 },
-  spear:     { from: 46, to: 98,  r: 9,  off: 0, grip2: -26, tip: 66 },
-  pike:      { from: 30, to: 86,  r: 7,  off: 0, grip2: -24, tip: 64 },
+  spear:     { from: 46, to: 98,  r: 9,  off: 0, grip2: -26, tip: 66, back: -44 },
+  pike:      { from: 30, to: 86,  r: 7,  off: 0, grip2: -24, tip: 64, back: -40 },
   saber:     { from: 4,  to: 50,  r: 9,  off: 1, grip2: null, tip: 0 },
   bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
 };
@@ -46,7 +47,7 @@ const CHARACTERS = [
   {
     id: 'liubei', name: '유비', hanja: '劉備', weapon: 'twin', weaponName: '쌍고검 (雙股劍)',
     desc: '밸런스형 · 한 번 공격에 두 번 베는 빠른 쌍검',
-    hp: 1.0, speed: 1.0, jump: 1.0, body: '#e0b422', accent: '#2e8b3d', chain: 3,
+    hp: 1.05, speed: 1.0, jump: 1.0, body: '#e0b422', accent: '#2e8b3d', fx: '#3aa655',
     stats: { 체력: 3, 속도: 3, 공격력: 2, 공속: 4, 사거리: 2 },
     idle: { main: [18, 14, -0.9], off: [10, 18, -0.4], lean: 0 },
     guard: { main: [16, -4, -1.2], off: [12, 2, -1.9], lean: -0.12 },
@@ -78,7 +79,7 @@ const CHARACTERS = [
   {
     id: 'guanyu', name: '관우', hanja: '關羽', weapon: 'glaive', weaponName: '청룡언월도 (靑龍偃月刀)',
     desc: '느리지만 묵직한 한 방 · 넓은 베기 궤적 · 휘두르는 동안 경직 무시',
-    hp: 1.15, speed: 0.8, jump: 0.92, body: '#1f5e33', accent: '#2f8a4d',
+    hp: 1.15, speed: 0.8, jump: 0.92, body: '#1f5e33', accent: '#2f8a4d', fx: '#1f9e7a',
     stats: { 체력: 5, 속도: 1, 공격력: 5, 공속: 1, 사거리: 4 },
     idle: { main: [16, 10, -1.2], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
@@ -102,7 +103,7 @@ const CHARACTERS = [
   {
     id: 'zhangfei', name: '장비', hanja: '張飛', weapon: 'serpent', weaponName: '장팔사모 (丈八蛇矛)',
     desc: '빠른 발 · 앞으로 뛰어들며 찌르는 긴 사거리의 강력한 찌르기',
-    hp: 0.9, speed: 1.15, jump: 1.05, body: '#151515', accent: '#c0392b',
+    hp: 0.9, speed: 1.15, jump: 1.05, body: '#151515', accent: '#c0392b', fx: '#d0392b',
     stats: { 체력: 2, 속도: 4, 공격력: 4, 공속: 2, 사거리: 5 },
     idle: { main: [14, 8, -0.25], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
@@ -123,7 +124,7 @@ const CHARACTERS = [
   {
     id: 'caocao', name: '조조', hanja: '曹操', weapon: 'sevenstar', weaponName: '칠성보도 (七星寶刀)',
     desc: '짧은 쿨타임과 넓은 베기 궤적 · 빈틈이 적은 운영형',
-    hp: 1.0, speed: 1.0, jump: 1.0, body: '#6a2c8f', accent: '#b22222',
+    hp: 1.0, speed: 1.0, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
     stats: { 체력: 3, 속도: 3, 공격력: 3, 공속: 4, 사거리: 3 },
     idle: { main: [18, 12, -1.0], off: [-10, 26, 0], lean: 0 },
     guard: { main: [14, -4, -1.35], off: [-6, 10, 0], lean: -0.12 },
@@ -144,7 +145,7 @@ const CHARACTERS = [
   {
     id: 'zhaoyun', name: '조자룡', hanja: '趙子龍', weapon: 'spear', weaponName: '애각창 (涯角槍)',
     desc: '최고의 기동력과 점프력 · 딜레이 없는 연속 찌르기',
-    hp: 0.85, speed: 1.3, jump: 1.22, body: '#f7f5ef', accent: '#2f6fd6', chain: 3,
+    hp: 0.8, speed: 1.3, jump: 1.22, body: '#f7f5ef', accent: '#2f6fd6', fx: '#3d7fe0',
     stats: { 체력: 1, 속도: 5, 공격력: 1, 공속: 5, 사거리: 4 },
     idle: { main: [14, 6, -0.2], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
@@ -228,14 +229,114 @@ const FACTIONS = {
   shu:    { name: '유비군', body: '#2e7d3a', helm: '#5a3a22' },
 };
 
+/* 영웅별 3단 콤보의 2타·3타. 1타는 각 캐릭터의 attack.
+ * hop: [프레임, 위로 속도, 앞으로 속도] 도약 / rot: 몸 전체 회전 키프레임 / wave: 검기 투사체 / noWeak: 회전 공격은 자루 타격 감쇠 없음 / fin: 마무리(줌인·큰 경직) */
+const COMBOS = {
+  liubei: [
+    {
+      name: '쌍검 회전베기', total: 28, lunge: [[4, 3], [12, 3]],
+      main: [[3, -30, -7, -2.8], [7, -1, -28, -1.6], [11, 31, -2, -0.2], [15, 12, 34, 1.2], [19, -27, 21, 2.6]],
+      off: [[3, 30, 15, 0.34], [7, 1, 36, 1.54], [11, -31, 10, 2.94], [15, -12, -26, 4.34], [19, 27, -12, 5.74]],
+      lean: [[3, -0.1], [11, 0.15], [19, 0.05]],
+      hits: [
+        { from: 5, to: 12, arm: 'main', dmg: 5, kb: 2.5, up: 2 },
+        { from: 9, to: 17, arm: 'off', dmg: 5, kb: 3, up: 2 },
+        { from: 13, to: 20, arm: 'main', dmg: 5, kb: 6, up: 3 },
+      ],
+    },
+    {
+      name: '쌍룡 돌격', total: 32, fin: true, lunge: [[10, 10]],
+      main: [[6, -8, 12, 0.35], [11, 42, -6, -0.06], [17, 40, -6, -0.06]],
+      off: [[6, -12, 16, 0.45], [11, 40, 4, 0.08], [17, 38, 4, 0.08]],
+      lean: [[6, -0.2], [11, 0.45], [17, 0.4]],
+      hits: [
+        { from: 10, to: 15, arm: 'main', dmg: 7, kb: 9, up: 4 },
+        { from: 10, to: 15, arm: 'off', dmg: 7, kb: 11, up: 6 },
+      ],
+    },
+  ],
+  guanyu: [
+    {
+      name: '횡소천군', total: 40, armor: [10, 22], lunge: [[16, 5]],
+      main: [[10, -24, 2, 3.0], [16, 4, 30, 1.6], [21, 36, 10, 0.25], [27, 26, 0, -0.6], [32, 24, 2, -0.7]],
+      lean: [[10, -0.2], [21, 0.25], [27, 0.15]],
+      hits: [{ from: 14, to: 23, arm: 'main', dmg: 15, kb: 11, up: 4 }],
+    },
+    {
+      name: '청룡 도약참', total: 54, fin: true, hop: [8, 10, 4], armor: [6, 30],
+      main: [[8, -6, -30, -2.0], [16, -16, -26, -2.9], [22, 10, -34, -1.5], [27, 34, -2, 0.2], [31, 32, 12, 1.0], [42, 32, 12, 1.0]],
+      lean: [[8, -0.2], [16, -0.35], [24, 0.2], [31, 0.4], [42, 0.35]],
+      hits: [{ from: 22, to: 33, arm: 'main', dmg: 18, kb: 12, up: 7 }],
+    },
+  ],
+  zhangfei: [
+    {
+      name: '사모 회전', total: 34, noWeak: true, lunge: [[6, 3]],
+      main: [[4, 18, 0, -1.57, 30], [9, 20, 2, 1.57, 30], [14, 20, 2, 4.71, 30], [19, 20, 2, 7.85, 30], [24, 18, 0, 11.0, 30]],
+      lean: [[4, 0], [14, 0.1], [24, 0]],
+      hits: [
+        { from: 6, to: 10, arm: 'main', dmg: 3, kb: 3, up: 1 },
+        { from: 9, to: 13, arm: 'butt', dmg: 3, kb: 3, up: 1 },
+        { from: 13, to: 17, arm: 'main', dmg: 3, kb: 3, up: 1 },
+        { from: 17, to: 22, arm: 'butt', dmg: 4, kb: 8, up: 4 },
+      ],
+    },
+    {
+      name: '맹호 도약찌르기', total: 42, fin: true, hop: [5, 8, 8],
+      main: [[5, -10, 4, -0.3], [11, 40, 14, 0.45], [24, 40, 14, 0.45]],
+      lean: [[5, -0.2], [11, 0.35], [24, 0.3]],
+      hits: [{ from: 10, to: 24, arm: 'main', dmg: 14, kb: 11, up: 6 }],
+    },
+  ],
+  caocao: [
+    {
+      name: '역베기', total: 22, lunge: [[3, 3]],
+      main: [[3, 22, 22, 1.5], [7, 34, -10, -0.9], [10, 24, -30, -1.6], [14, 22, -28, -1.5]],
+      lean: [[3, 0.2], [7, 0], [10, -0.15]],
+      hits: [{ from: 4, to: 10, arm: 'main', dmg: 9, kb: 4, up: 9 }],
+    },
+    {
+      name: '칠성 검기', total: 32, fin: true, lunge: [[9, 5]], wave: { f: 12, speed: 11, dmg: 7, life: 34 },
+      main: [[8, -10, -28, -2.7], [12, 38, -2, -0.1], [15, 30, 20, 1.2], [22, 28, 20, 1.2]],
+      lean: [[8, -0.15], [12, 0.3], [15, 0.3]],
+      hits: [{ from: 9, to: 15, arm: 'main', dmg: 8, kb: 8, up: 4 }],
+    },
+  ],
+  zhaoyun: [
+    {
+      name: '창 돌리기', total: 28, noWeak: true, lunge: [[5, 4]],
+      main: [[3, 18, 0, -1.57, 26], [7, 20, 2, 1.57, 26], [11, 20, 2, 4.71, 26], [15, 20, 2, 7.85, 26], [19, 18, 0, 10.2, 26]],
+      lean: [[3, 0], [11, 0.1], [19, 0]],
+      hits: [
+        { from: 6, to: 9, arm: 'main', dmg: 3, kb: 3, up: 1 },
+        { from: 8, to: 11, arm: 'butt', dmg: 3, kb: 3, up: 1 },
+        { from: 11, to: 14, arm: 'main', dmg: 3, kb: 3, up: 1 },
+        { from: 14, to: 18, arm: 'butt', dmg: 4, kb: 7, up: 3 },
+      ],
+    },
+    {
+      name: '용 승천', total: 36, fin: true, hop: [5, 12, 3], rot: [[5, 0], [20, -TAU]],
+      main: [[5, 20, 18, 1.2], [10, 38, -6, -0.4], [16, 30, -26, -1.3], [26, 30, -20, -1.0]],
+      lean: [[5, 0.1], [10, 0.2]],
+      hits: [{ from: 7, to: 16, arm: 'main', dmg: 8, kb: 3, up: 13 }],
+    },
+  ],
+};
+
 const CHAR = {};
+/* 무기 키프레임: [frame, handX, handY, 각도, 쥐는위치]. 쥐는위치 g>0이면 손이 자루 가운데 쪽으로 옮겨가 봉술처럼 돌릴 수 있다.
+ * 끝 각도는 idle 각도와 같은 방향(2π 배수 차이)으로 맞춰 휘두른 방향 그대로 자연스럽게 돌아오게 한다. */
+const nearAngle = (base, ref) => base + TAU * Math.round((ref - base) / TAU);
 function buildMoveKeys(ch, mv) {
   const i = ch.idle;
-  const last = mv.main.length ? mv.main[mv.main.length - 1][3] : i.main[2];
-  const endW = i.main[2] + Math.PI * 2 * Math.round((last - i.main[2]) / (Math.PI * 2));
-  mv.mainK = [[0, ...i.main], ...mv.main, [mv.total, i.main[0], i.main[1], endW]];
+  const norm = k => (k.length >= 5 ? k : [...k, 0]);
+  const main = mv.main.map(norm);
+  const last = main.length ? main[main.length - 1][3] : i.main[2];
+  mv.mainK = [[0, ...i.main, 0], ...main, [mv.total, i.main[0], i.main[1], nearAngle(i.main[2], last), 0]];
   const ob = mv.offBase || i.off;
-  mv.offK = mv.off ? [[0, ...ob], ...mv.off, [mv.total, ...ob]] : null;
+  const offLast = mv.off && mv.off.length ? mv.off[mv.off.length - 1][3] : ob[2];
+  mv.offK = mv.off ? [[0, ...ob], ...mv.off, [mv.total, ob[0], ob[1], nearAngle(ob[2], offLast)]] : null;
+  mv.rotK = mv.rot ? [[0, 0], ...mv.rot, [mv.total, nearAngle(0, mv.rot[mv.rot.length - 1][1])]] : null;
   mv.leanK = [[0, i.lean], ...mv.lean, [mv.total, i.lean]];
   mv.lunges = !mv.lunge ? [] : Array.isArray(mv.lunge[0]) ? mv.lunge : [mv.lunge];
   mv.lastHitEnd = mv.hits.length ? Math.max(...mv.hits.map(h => h.to)) : mv.roar ? mv.roar.f : mv.counter ? mv.counter[1] : 0;
@@ -276,6 +377,13 @@ const COMBO_WINDOW = 18;
 for (const ch of [...CHARACTERS, ...SOLDIERS]) {
   buildMoveKeys(ch, ch.attack);
   buildMoveKeys(ch, ch.special);
+  if (COMBOS[ch.id]) {
+    ch.attack2 = buildMoveKeys(ch, COMBOS[ch.id][0]);
+    ch.attack3 = buildMoveKeys(ch, COMBOS[ch.id][1]);
+    ch.combo = ['n', 'n2', 'n3'];
+  } else {
+    ch.combo = ch.elite ? ['n', 'n'] : ['n'];
+  }
   ch.kick = buildMoveKeys(ch, { ...KICK });
   ch.airKick = buildMoveKeys(ch, { ...AIR_KICK });
   ch.punch = buildMoveKeys(ch, WEAPONS[ch.weapon].grip2 !== null ? { ...PUNCH, ...PUNCH_TWO_HANDED } : { ...PUNCH });
@@ -283,8 +391,9 @@ for (const ch of [...CHARACTERS, ...SOLDIERS]) {
   CHAR[ch.id] = ch;
 }
 
-const MOVES = { n: 'attack', s: 'special', k: 'kick', j: 'airKick', p: 'punch' };
-const MOVE_CODES = ['n', 's', 'k', 'j', 'p'];
+const MOVES = { n: 'attack', n2: 'attack2', n3: 'attack3', s: 'special', k: 'kick', j: 'airKick', p: 'punch' };
+const MOVE_CODES = ['n', 's', 'k', 'j', 'p', 'n2', 'n3'];
+const COMBO_MOVES = new Set(['n', 'n2', 'n3', 'k']);
 const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
 const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, sword: 72, pike: 118, archer: 400, elite: 88 };
@@ -377,11 +486,12 @@ function computePose(p, now) {
   const hd = { x: sh.x + Math.sin(lean * 1.1) * (SK.neck + SK.headR), y: sh.y - Math.cos(lean * 1.1) * (SK.neck + SK.headR) };
 
   const mainArm = ik(sh.x, sh.y, sh.x + m[0], sh.y + m[1], SK.upper, SK.fore, 1);
-  const w = m[2];
+  const w = m[2], grip = m[3] || 0;
   let offArm, ow;
   if (wd.grip2 !== null && p.st !== ST.HIT && p.st !== ST.KO && !(A && A.offPunch)) {
     ow = w;
-    offArm = ik(sh.x, sh.y, mainArm.hx + Math.cos(w) * wd.grip2, mainArm.hy + Math.sin(w) * wd.grip2, SK.upper, SK.fore, 1);
+    const g2 = grip > 0 ? -14 : wd.grip2;
+    offArm = ik(sh.x, sh.y, mainArm.hx + Math.cos(w) * g2, mainArm.hy + Math.sin(w) * g2, SK.upper, SK.fore, 1);
   } else {
     ow = o[2];
     offArm = ik(sh.x, sh.y, sh.x + o[0], sh.y + o[1], SK.upper, SK.fore, 1);
@@ -412,13 +522,27 @@ function computePose(p, now) {
   const legF = ik(hip.x, hip.y, ff[0], ff[1], SK.thigh, SK.shin, -1);
   const legB = ik(hip.x, hip.y, fb[0], fb[1], SK.thigh, SK.shin, -1);
 
-  return {
-    hip, sh, hd, lean,
+  const pose = {
+    hip, sh, hd, lean, grip,
     me: { x: mainArm.ex, y: mainArm.ey }, mh: { x: mainArm.hx, y: mainArm.hy }, w,
     oe: { x: offArm.ex, y: offArm.ey }, oh: { x: offArm.hx, y: offArm.hy }, ow,
     kf: { x: legF.ex, y: legF.ey }, ff: { x: legF.hx, y: legF.hy },
     kb: { x: legB.ex, y: legB.ey }, fb: { x: legB.hx, y: legB.hy },
   };
+  const rot = A && A.rotK ? sampleKeys(A.rotK, p.af)[0] : 0;
+  if (rot) rotatePose(pose, rot);
+  return pose;
+}
+
+/* 공중제비 같은 몸 전체 회전은 엉덩이를 축으로 모든 관절과 무기 각도를 돌린다. 판정도 같은 포즈를 쓰므로 함께 돈다. */
+function rotatePose(pose, a) {
+  const c = Math.cos(a), s = Math.sin(a), ox = pose.hip.x, oy = pose.hip.y;
+  for (const k of ['sh', 'hd', 'me', 'mh', 'oe', 'oh', 'kf', 'ff', 'kb', 'fb']) {
+    const q = pose[k], dx = q.x - ox, dy = q.y - oy;
+    q.x = ox + dx * c - dy * s;
+    q.y = oy + dx * s + dy * c;
+  }
+  pose.w += a; pose.ow += a; pose.rot = a;
 }
 
 /* 무기 날(blade) 구간을 월드 좌표 캡슐로 변환. 핸디캡 배율은 끝(사거리)만 늘려 근접 사각지대가 생기지 않게 한다 */
@@ -432,10 +556,16 @@ function bladeSeg(p, pose, arm, ox = p.x, oy = p.y) {
   const wd = WEAPONS[CHAR[p.c].weapon];
   const hand = arm === 'off' ? pose.oh : pose.mh;
   const w = arm === 'off' ? pose.ow : pose.w;
+  const g = arm === 'off' ? 0 : pose.grip || 0;
   const s = p.ws, c = Math.cos(w), sn = Math.sin(w);
+  if (arm === 'butt') {
+    const a0 = wd.back * s - g, a1 = (wd.back + 26) * s - g;
+    return { ax: ox + p.f * (hand.x + c * a0), ay: oy + hand.y + sn * a0, bx: ox + p.f * (hand.x + c * a1), by: oy + hand.y + sn * a1, r: 7 * s };
+  }
   const px = -sn * wd.off * s, py = c * wd.off * s;
-  const ax = hand.x + c * wd.from + px, ay = hand.y + sn * wd.from + py;
-  const bx = hand.x + c * wd.to * s + px, by = hand.y + sn * wd.to * s + py;
+  const from = wd.from - g, to = wd.to * s - g;
+  const ax = hand.x + c * from + px, ay = hand.y + sn * from + py;
+  const bx = hand.x + c * to + px, by = hand.y + sn * to + py;
   return { ax: ox + p.f * ax, ay: oy + ay, bx: ox + p.f * bx, by: oy + by, r: wd.r * s };
 }
 
@@ -467,7 +597,7 @@ function makePlayer(idx, charId, handicapped) {
     st: ST.IDLE, af: -1, an: 0, hm: {}, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, luc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, bu: 0, prevSeg: null,
-    rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trail: [], ghosts: [],
+    rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trails: {}, trailAf: -1, ghosts: [],
   };
   resetPlayer(p);
   return p;
@@ -480,7 +610,7 @@ function resetPlayer(p) {
   p.vx = p.vy = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
   p.st = ST.IDLE; p.af = -1; p.hm = {}; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
-  p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trail.length = 0; p.ghosts.length = 0;
+  p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trails = {}; p.trailAf = -1; p.ghosts.length = 0;
 }
 
 function newInput() {
@@ -498,7 +628,7 @@ function createGame(opts) {
     players: [makePlayer(0, opts.chars[0], handicapIdx === 0), makePlayer(1, opts.chars[1], handicapIdx === 1)],
     phase: PHASE.INTRO, pt: 0, round: 1, frame: 0, hitstop: 0, winner: -1,
     inputs: [newInput(), newInput()], pending: [], lastF: -1, seen: new Set(),
-    ai: { t: 0, mode: 'approach' }, lastRecv: performance.now(),
+    ai: { t: 0, mode: 'approach' }, lastRecv: performance.now(), projs: [],
   };
 }
 
@@ -525,7 +655,8 @@ function simStep() {
   if (g.phase === PHASE.FIGHT) {
     checkHits(P[0], P[1]);
     checkHits(P[1], P[0]);
-  }
+    updateProjs();
+  } else g.projs.length = 0;
   for (const p of P) storePrevSeg(p);
 
   if (g.phase === PHASE.KO && g.pt >= KO_FRAMES) nextRound();
@@ -546,9 +677,14 @@ function startMove(p, kind) {
 /* 땅: 무기 → 무기 → 발차기 콤보(직전 공격이 끝난 뒤 COMBO_WINDOW 안에 이어 누르면 다음 단계). 공중: 점프 발차기(점프당 1회). */
 function nextAttackKind(p) {
   if (!p.g) return p.ak ? null : 'j';
+  const ch = CHAR[p.c], seq = ch.combo;
   p.cs = p.cw > 0 ? p.cs + 1 : 0;
-  if (p.cs >= (CHAR[p.c].chain || 2)) { p.cs = -1; return 'k'; }
-  return 'n';
+  if (p.cs >= seq.length) {
+    if (ch.chain === 99) { p.cs = 0; return seq[0]; }
+    p.cs = -1;
+    return 'k';
+  }
+  return seq[p.cs];
 }
 
 function updatePlayer(p, inp, opp, ctrl) {
@@ -589,8 +725,10 @@ function updatePlayer(p, inp, opp, ctrl) {
       if (mv.roar && p.af === mv.roar.f) doRoar(p, opp);
       if (mv.fire && p.af === mv.fire) fireArrow(p);
       if (mv.dive && p.af === mv.dive[0]) { p.vx = p.f * mv.dive[1]; p.vy = Math.max(p.vy, mv.dive[2]); }
+      if (mv.hop && p.af === mv.hop[0]) { p.vy = -mv.hop[1]; p.vx = p.f * mv.hop[2]; p.g = false; p.hopped = true; }
+      if (mv.wave && p.af === mv.wave.f) spawnWave(p, mv.wave);
       if (p.af >= mv.total) {
-        if (p.mv === 'n' || p.mv === 'k') p.cw = COMBO_WINDOW;
+        if (COMBO_MOVES.has(p.mv)) p.cw = COMBO_WINDOW;
         p.af = -1; p.mv = 'n'; mv = ch.attack;
       }
     }
@@ -639,7 +777,7 @@ function updatePlayer(p, inp, opp, ctrl) {
     if (p.bj > 0 && p.g && p.af < 0 && p.df <= 0) {
       p.bj = 0; p.vy = -JUMP_V * ch.jump; p.g = false;
     }
-    if (p.df <= 0 && !(p.af >= 0 && moveOf(p).air)) {
+    if (p.df <= 0 && !(p.af >= 0 && (moveOf(p).air || moveOf(p).hop))) {
       let target = dir * MOVE_SPEED * ch.speed;
       if (p.af >= 0) target *= 0.2;
       else if (back && p.g) target *= 0.6;
@@ -663,10 +801,13 @@ function updatePlayer(p, inp, opp, ctrl) {
   p.x += p.vx; p.y += p.vy;
   if (p.y >= GROUND) {
     p.y = GROUND;
+    const fallV = p.vy;
     if (p.vy > 0) p.vy = 0;
     if (!p.g) {
       p.g = true; p.ad = false; p.ak = false;
       if (p.mv === 'j' && p.af >= 0) { p.af = -1; p.mv = 'n'; }
+      if (p.hopped || fallV > 11) emit({ k: 'land', x: r1(p.x), y: GROUND, hv: p.hopped && p.af >= 0 && moveOf(p).fin ? 1 : 0 });
+      p.hopped = false;
     }
   } else {
     p.g = false;
@@ -688,7 +829,8 @@ function separate(a, b) {
 function storePrevSeg(p) {
   if (p.af < 0) { p.prevSeg = null; return; }
   const pose = computePose(p, 0);
-  p.prevSeg = { main: bladeSeg(p, pose, 'main'), off: bladeSeg(p, pose, 'off') };
+  p.prevSeg = {};
+  for (const arm of moveOf(p).arms) p.prevSeg[arm] = bladeSeg(p, pose, arm);
 }
 
 function checkHits(att, def) {
@@ -715,7 +857,8 @@ function checkHits(att, def) {
     }
     if (!contact) continue;
     const along = wd.from + contact.t * (wd.to * att.ws - wd.from);
-    const weak = h.arm !== 'foot' && h.arm !== 'fist' && wd.tip > 0 && along < wd.tip && att.mv !== 's';
+    const amv = moveOf(att);
+    const weak = (h.arm === 'main' || h.arm === 'off') && !amv.noWeak && !amv.fin && wd.tip > 0 && along < wd.tip && att.mv !== 's';
     const hh = weak ? { ...h, dmg: Math.max(1, Math.round(h.dmg * 0.5)), kb: h.kb * 0.5, up: (h.up ?? 3) * 0.6, weak: true } : h;
     applyHit(att, def, hh, i, contact);
     if (def.st === ST.KO || att.af < 0) return;
@@ -754,8 +897,9 @@ function damage(att, def, h, pt) {
     def.st = ST.HIT;
   }
   if (def.x <= 34 || def.x >= W - 34) att.vx -= dir * h.kb * 0.7;
-  g.hitstop = Math.max(g.hitstop, def.grunt ? 2 : h.dmg >= 18 ? 8 : 4);
-  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: h.dmg, t: def.idx, hv: h.dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0, g: def.grunt ? 1 : 0 });
+  const fin = att.af >= 0 && (moveOf(att).fin || att.mv === 's') ? 1 : 0;
+  g.hitstop = Math.max(g.hitstop, def.grunt ? (fin ? 5 : 2) : fin ? 9 : h.dmg >= 18 ? 8 : 4);
+  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: h.dmg, t: def.idx, hv: h.dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0, g: def.grunt ? 1 : 0, fin, c: att.c });
 
   if (def.hp <= 0 && g.mode === 'story') {
     def.st = ST.KO; def.af = -1; def.mv = 'n'; def.df = 0; def.hit = 0; def.kt = 0; def.dz = 0;
@@ -1201,7 +1345,7 @@ function storyStep() {
       if (me.st !== ST.KO) checkHits(e, me);
     }
   }
-  updateProjectiles(me);
+  updateProjs();
   updateItems(me);
   if (me.hp < hpBefore) S.dmgTaken += hpBefore - me.hp;
   for (const p of g.players) storePrevSeg(p);
@@ -1267,41 +1411,59 @@ function enemyAI(e, me, fighting) {
 
 function fireArrow(p) {
   if (!game.projs) return;
-  game.projs.push({ x: p.x + p.f * 34, y: p.y - 96, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
+  game.projs.push({ kind: 'arrow', x: p.x + p.f * 34, y: p.y - 96, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
   emit({ k: 'shoot', p: p.idx });
 }
 
-function updateProjectiles(me) {
+function spawnWave(p, W2) {
+  if (!game.projs) return;
+  game.projs.push({ kind: 'wave', x: p.x + p.f * 46, y: p.y - 64, vx: p.f * W2.speed, vy: 0, owner: p, dmg: W2.dmg, life: W2.life, hit: new Set() });
+  emit({ k: 'wavefx', p: p.idx });
+}
+
+const isFoe = (a, b) => (game.mode === 'story' ? (a.idx === 0) !== (b.idx === 0) : a !== b);
+
+function activeCutSegs(t) {
+  if (t.af < 0 || t.st !== ST.ATK) return null;
+  const active = moveOf(t).hits.filter(h => t.af >= h.from && t.af <= h.to);
+  if (!active.length) return null;
+  const pose = computePose(t, 0);
+  return active.map(h => bladeSeg(t, pose, h.arm));
+}
+
+/* 화살은 첫 대상에 맞으면 사라지고 무기로 쳐낼 수 있다. 검기는 관통하며 대상마다 한 번씩 맞힌다. */
+function updateProjs() {
   const g = game;
-  let cut = null;
-  if (me.af >= 0 && me.st === ST.ATK) {
-    const mv = moveOf(me), active = mv.hits.filter(h => me.af >= h.from && me.af <= h.to);
-    if (active.length) {
-      const pose = computePose(me, 0);
-      cut = active.map(h => bladeSeg(me, pose, h.arm));
-    }
-  }
+  if (!g.projs || !g.projs.length) return;
   for (const a of g.projs) {
-    a.x += a.vx; a.y += a.vy; a.vy += 0.03; a.life--;
-    if (cut && cut.some(s => distToSeg(a.x, a.y, s) < s.r + 8)) {
-      a.dead = true;
-      emit({ k: 'deflect', x: r1(a.x), y: r1(a.y) });
-      continue;
-    }
-    if (me.st !== ST.KO && me.inv <= 0) {
-      const hb = hurtbox(me);
-      if (a.x > hb.x0 - 4 && a.x < hb.x1 + 4 && a.y > hb.y0 && a.y < hb.y1) {
-        a.dead = true;
-        const fromFront = me.f === (a.vx < 0 ? 1 : -1);
-        const guarding = me.g && me.af < 0 && me.df <= 0 && me.hit <= 0 && fromFront && (me.st === ST.BLOCK || me.backT > 0);
-        if (guarding) {
-          me.gd -= 8;
-          emit({ k: 'block', x: r1(a.x), y: r1(a.y), d: 0, t: 0 });
-        } else {
-          damage(a.owner, me, { dmg: a.dmg, kb: 3, up: 2 }, { x: a.x, y: a.y });
+    a.x += a.vx; a.y += a.vy; a.life--;
+    if (a.kind === 'arrow') a.vy += 0.03;
+    const targets = g.players.filter(t => t !== a.owner && t.st !== ST.KO && !t.gone && isFoe(a.owner, t));
+    for (const t of targets) {
+      if (a.dead) break;
+      if (a.kind === 'arrow') {
+        const cut = activeCutSegs(t);
+        if (cut && cut.some(s => distToSeg(a.x, a.y, s) < s.r + 8)) {
+          a.dead = true;
+          emit({ k: 'deflect', x: r1(a.x), y: r1(a.y) });
+          break;
         }
-        continue;
       }
+      if (t.inv > 0 || (a.hit && a.hit.has(t.idx))) continue;
+      const hb = hurtbox(t), pad = a.kind === 'wave' ? 16 : 4;
+      if (a.x < hb.x0 - pad || a.x > hb.x1 + pad || a.y < hb.y0 - pad || a.y > hb.y1) continue;
+      const h = { dmg: a.dmg, kb: a.kind === 'wave' ? 7 : 3, up: 2 };
+      const pt = { x: a.x, y: a.y };
+      const fromFront = t.f === (a.vx < 0 ? 1 : -1);
+      const guarding = !t.noGuard && t.g && t.af < 0 && t.df <= 0 && t.hit <= 0 && fromFront && (t.st === ST.BLOCK || t.backT > 0);
+      if (guarding) {
+        if (a.kind === 'arrow') { t.gd -= 8; emit({ k: 'block', x: r1(a.x), y: r1(a.y), d: 0, t: t.idx }); }
+        else block(a.owner, t, h, pt);
+      } else {
+        damage(a.owner, t, h, pt);
+      }
+      if (a.kind === 'arrow') a.dead = true;
+      else a.hit.add(t.idx);
     }
     if (a.x < -40 || a.x > W + 40 || a.y > GROUND || a.life <= 0) a.dead = true;
   }
@@ -1636,7 +1798,8 @@ function unpackPlayer(p, a) {
 
 function broadcastState() {
   const g = game;
-  netSend({ t: 's', f: g.frame, ph: g.phase, pt: g.pt, rd: g.round, w: g.winner, p: g.players.map(packPlayer), e: g.pending });
+  const pj = g.projs.map(a => [a.kind === 'wave' ? 1 : 0, r1(a.x), r1(a.y), r2(a.vx), r2(a.vy), a.owner.idx, a.life]);
+  netSend({ t: 's', f: g.frame, ph: g.phase, pt: g.pt, rd: g.round, w: g.winner, p: g.players.map(packPlayer), e: g.pending, pj });
   g.pending = [];
 }
 
@@ -1655,7 +1818,8 @@ function applyState(d) {
   const newRound = d.rd !== g.round;
   g.phase = d.ph; g.pt = d.pt; g.round = d.rd; g.winner = d.w;
   d.p.forEach((a, i) => unpackPlayer(g.players[i], a));
-  if (newRound) for (const p of g.players) { p.rx = p.x; p.ry = p.y; p.hpLag = p.hp; p.trail.length = 0; }
+  g.projs = (d.pj || []).map(([k, x, y, vx, vy, o, life]) => ({ kind: k ? 'wave' : 'arrow', x, y, vx, vy, owner: g.players[o] || g.players[0], life }));
+  if (newRound) for (const p of g.players) { p.rx = p.x; p.ry = p.y; p.hpLag = p.hp; p.trails = {}; p.trailAf = -1; }
 }
 
 function onDisconnect(msg) {
@@ -1820,7 +1984,17 @@ const Sound = {
 };
 
 /* ----------------------------- 이펙트 ----------------------------- */
-const fx = { parts: [], slashes: [], texts: [], rings: [], cutin: null, shake: 0, flash: 0 };
+const fx = { parts: [], slashes: [], texts: [], rings: [], bursts: [], streaks: [], cutin: null, shake: 0, flash: 0, zoom: 0, zx: W / 2, zy: H / 2 };
+
+function impact(x, y, col, big) {
+  fx.bursts.push({ x, y, r: big ? 70 : 40, life: big ? 14 : 9, max: big ? 14 : 9, col });
+  const n = big ? 10 : 6;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU;
+    fx.streaks.push({ x, y, a, len: (big ? 70 : 40) + Math.random() * 30, w: big ? 4 : 3, life: 10, max: 10, col: i % 2 ? '255,253,240' : col });
+  }
+  if (big) { fx.zoom = Math.max(fx.zoom, 0.09); fx.zx = x; fx.zy = y; }
+}
 
 function sparks(x, y, n, col, speed) {
   for (let i = 0; i < n; i++) {
@@ -1853,10 +2027,11 @@ function handleEvent(ev) {
         const a = Math.random() * Math.PI * 2, s = 2 + Math.random() * (ev.hv ? 8 : 5);
         fx.parts.push({ x: ev.x, y: ev.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, r: 1.5 + Math.random() * 3.5, life: 30, max: 30, col: Math.random() < 0.55 ? 'rgba(31,26,23,' : 'rgba(168,40,32,', g: 0.25 });
       }
-      fx.slashes.push({ x: ev.x, y: ev.y, a: -0.6 + Math.random() * 1.2, len: ev.hv ? 90 : 55, life: 16, max: 16 });
+      fx.slashes.push({ x: ev.x, y: ev.y, a: -0.6 + Math.random() * 1.2, len: ev.hv || ev.fin ? 90 : 55, life: 16, max: 16 });
+      impact(ev.x, ev.y, rgbOf((CHAR[ev.c] && CHAR[ev.c].fx) || '#a8322a'), !!ev.fin);
       if (ev.w) popText(ev.x, ev.y - 20, `-${ev.d} 자루`, 18, '#6b625a');
-      else popText(ev.x, ev.y - 20, (ev.a ? '' : '-') + ev.d, ev.hv ? 34 : 24, RED);
-      fx.shake = Math.max(fx.shake, ev.g ? 3 : ev.hv ? 12 : 5);
+      else popText(ev.x, ev.y - 20, (ev.a ? '' : '-') + ev.d, ev.fin ? 38 : ev.hv ? 34 : 24, RED);
+      fx.shake = Math.max(fx.shake, ev.fin ? 10 : ev.g ? 3 : ev.hv ? 12 : 5);
       if (ev.hv && !ev.g) fx.flash = 0.35;
       if (game && ev.t === game.me && navigator.vibrate) { try { navigator.vibrate(ev.hv ? 60 : 25); } catch (e) { /* ignore */ } }
       break;
@@ -1872,6 +2047,21 @@ function handleEvent(ev) {
       break;
     case 'shoot':
       Sound.tone(520, 180, 0.12, 'triangle', 0.15);
+      break;
+    case 'wavefx':
+      Sound.swing(true);
+      Sound.tone(900, 300, 0.25, 'sine', 0.12);
+      break;
+    case 'land':
+      for (let i = 0; i < (ev.hv ? 18 : 8); i++) {
+        const d = Math.random() < 0.5 ? -1 : 1;
+        fx.parts.push({ x: ev.x + d * Math.random() * 12, y: ev.y - 2, vx: d * (1 + Math.random() * (ev.hv ? 5 : 3)), vy: -Math.random() * 2, r: 3 + Math.random() * 5, life: 26, max: 26, col: 'rgba(120,100,80,', g: -0.02 });
+      }
+      if (ev.hv) {
+        fx.rings.push({ x: ev.x, y: ev.y - 4, r: 10, grow: 7, life: 18, max: 18, col: '120,100,80', w: 4 });
+        fx.shake = Math.max(fx.shake, 9);
+        Sound.noise(0.3, 300, 90, 0.7, 0.5);
+      }
       break;
     case 'deflect':
       Sound.block();
@@ -1933,8 +2123,13 @@ function updateEffects(k) {
   for (const r of fx.rings) { r.r += r.grow * k; r.life -= k; }
   fx.rings = fx.rings.filter(r => r.life > 0);
   if (fx.cutin && (fx.cutin.life -= k) <= 0) fx.cutin = null;
+  for (const b of fx.bursts) b.life -= k;
+  fx.bursts = fx.bursts.filter(b => b.life > 0);
+  for (const s of fx.streaks) s.life -= k;
+  fx.streaks = fx.streaks.filter(s => s.life > 0);
   fx.shake = Math.max(0, fx.shake - 0.9 * k);
   fx.flash = Math.max(0, fx.flash - 0.03 * k);
+  fx.zoom *= Math.pow(0.88, k);
 }
 
 /* ----------------------------- 캔버스 / 배경 ----------------------------- */
@@ -2065,9 +2260,10 @@ function tassel(c, x, now, col, len = 12) {
   }
 }
 
-function drawWeapon(c, type, hx, hy, ang, s, now, ink) {
+function drawWeapon(c, type, hx, hy, ang, s, now, ink, grip = 0) {
   c.save();
   c.translate(hx, hy); c.rotate(ang); c.scale(s, s);
+  if (grip) c.translate(-grip / s, 0);
   c.lineCap = 'round'; c.lineJoin = 'round';
   const silver = c.createLinearGradient(0, -6, 0, 6);
   silver.addColorStop(0, '#f6f8fa'); silver.addColorStop(0.5, '#c3c9d0'); silver.addColorStop(1, '#8a929b');
@@ -2319,6 +2515,14 @@ function drawHead(c, ch, p, pose, now, ink) {
   }
 }
 
+/* 달리며 뛰면 체공 시간에 맞춰 한 바퀴 돈다(앞으로 달리면 앞구르기, 뒤로 뛰면 뒤구르기). 표시만 바뀌고 판정에는 영향 없음. */
+function airFlip(p) {
+  if (p.st !== ST.AIR || p.g || Math.abs(p.vx) < 2.5 || CHAR[p.c].soldier) return 0;
+  const v0 = JUMP_V * CHAR[p.c].jump;
+  const t = clamp((p.vy + v0) / (2 * v0), 0, 1);
+  return Math.sign(p.vx * p.f) * TAU * t * t * (3 - 2 * t);
+}
+
 function drawFighter(c, p, now, ox, oy, alpha) {
   const ch = CHAR[p.c];
   const pose = computePose(p, now);
@@ -2330,6 +2534,8 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   c.translate(ox, oy);
   c.scale(p.f, 1);
   if (p.st === ST.KO) c.rotate(-Math.min(1, p.kt / 22) * 1.42);
+  const flip = airFlip(p);
+  if (flip) { c.translate(0, -SK.hip); c.rotate(flip); c.translate(0, SK.hip); }
   c.globalAlpha = alpha * (p.inv && p.st === ST.DASH ? 0.7 : 1);
   c.lineCap = 'round'; c.lineJoin = 'round';
 
@@ -2365,7 +2571,7 @@ function drawFighter(c, p, now, ox, oy, alpha) {
 
   // 주무기 + 앞팔
   if (ch.weapon === 'bow') drawBow(c, p, pose, ink);
-  else drawWeapon(c, ch.weapon, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink);
+  else drawWeapon(c, ch.weapon, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink, pose.grip);
   limb(c, pose.sh, pose.me, pose.mh, ink, 4.6);
 
   c.fillStyle = ch.id === 'zhangfei' ? ch.accent : ink;
@@ -2638,15 +2844,67 @@ function drawDizzy(c, p, pose, now) {
   }
 }
 
-function drawTrail(c, p) {
-  if (p.trail.length < 2) return;
-  const sp = p.mv === 's';
-  for (let i = 1; i < p.trail.length; i++) {
-    const a = p.trail[i - 1], b = p.trail[i];
-    const al = (i / p.trail.length) * (sp ? 0.45 : 0.28);
-    c.fillStyle = sp ? `rgba(201,138,18,${al})` : `rgba(31,26,23,${al})`;
-    c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[2], a[3]); c.lineTo(b[2], b[3]); c.lineTo(b[0], b[1]); c.closePath(); c.fill();
+const rgbOf = hex => { const n = parseInt(hex.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+
+/* 궤적은 지난 그리기 이후의 공격 프레임 사이를 소수 프레임으로 나눠 샘플링한다. 한 프레임에 40°씩 도는 회전도 매끄러운 호가 된다. */
+function updateTrails(p, now) {
+  const mv = p.af >= 0 && p.st === ST.ATK ? moveOf(p) : null;
+  const arms = mv ? mv.arms.filter(a => a !== 'fist') : [];
+  for (const arm of Object.keys(p.trails)) {
+    if (arms.includes(arm)) continue;
+    p.trails[arm].splice(0, 3);
+    if (!p.trails[arm].length) delete p.trails[arm];
   }
+  if (!arms.length) { p.trailAf = -1; return; }
+  if (p.af === p.trailAf) return;
+  const from = p.trailAf >= 0 && p.trailAf < p.af ? p.trailAf : p.af - 0.34;
+  const steps = Math.max(1, Math.min(6, Math.ceil((p.af - from) * 3)));
+  const q = Object.assign({}, p);
+  for (let s = 1; s <= steps; s++) {
+    q.af = from + (p.af - from) * s / steps;
+    const pose = computePose(q, now);
+    for (const arm of arms) {
+      const sg = bladeSeg(q, pose, arm, p.rx, p.ry);
+      const t = p.trails[arm] || (p.trails[arm] = []);
+      t.push([sg.ax + (sg.bx - sg.ax) * 0.3, sg.ay + (sg.by - sg.ay) * 0.3, sg.bx, sg.by]);
+      if (t.length > 16) t.shift();
+    }
+  }
+  p.trailAf = p.af;
+}
+
+function drawTrail(c, p) {
+  const col = rgbOf(CHAR[p.c].fx || '#4a423b');
+  const big = p.mv === 's' || (p.af >= 0 && moveOf(p).fin);
+  for (const t of Object.values(p.trails)) {
+    const n = t.length;
+    if (n < 2) continue;
+    for (let i = 1; i < n; i++) {
+      const a = t[i - 1], b = t[i], k = i / n;
+      c.fillStyle = `rgba(${col},${(k * k * (big ? 0.6 : 0.42)).toFixed(3)})`;
+      c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[2], a[3]); c.lineTo(b[2], b[3]); c.lineTo(b[0], b[1]); c.closePath(); c.fill();
+    }
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(t[0][2], t[0][3]);
+    for (let i = 1; i < n; i++) c.lineTo(t[i][2], t[i][3]);
+    c.strokeStyle = `rgba(${col},0.7)`; c.lineWidth = big ? 5 : 3.5; c.stroke();
+    c.strokeStyle = 'rgba(255,253,240,0.85)'; c.lineWidth = big ? 2 : 1.3; c.stroke();
+  }
+}
+
+function drawWave(c, a) {
+  const col = rgbOf(CHAR[a.owner.c].fx || '#8a44c8');
+  const d = a.vx >= 0 ? 1 : -1, al = clamp(a.life / 12, 0, 1);
+  c.save();
+  c.translate(a.x, a.y); c.scale(d, 1);
+  c.beginPath();
+  c.arc(-14, 0, 46, -1.05, 1.05);
+  c.arc(-26, 0, 40, 1.0, -1.0, true);
+  c.closePath();
+  c.fillStyle = `rgba(${col},${(0.55 * al).toFixed(3)})`; c.fill();
+  c.strokeStyle = `rgba(255,253,240,${(0.9 * al).toFixed(3)})`; c.lineWidth = 2;
+  c.beginPath(); c.arc(-14, 0, 44, -0.95, 0.95); c.stroke();
+  c.restore();
 }
 
 function render(now, k) {
@@ -2665,12 +2923,18 @@ function render(now, k) {
     if (p.st === ST.WALK || p.st === ST.GUARD) p.wp += p.vx * p.f * 0.09 * k;
     p.hpLag += (p.hp - p.hpLag) * Math.min(1, 0.06 * k);
     if (p.hpLag < p.hp) p.hpLag = p.hp;
-    if (p.st === ST.DASH && renderFrame % 2 === 0) { p.ghosts.push([p.rx, p.ry]); if (p.ghosts.length > 5) p.ghosts.shift(); }
-    else if (p.st !== ST.DASH && p.ghosts.length && renderFrame % 2 === 0) p.ghosts.shift();
+    const fast = p.st === ST.DASH || (p.st === ST.ATK && Math.abs(p.vx) > 6.5);
+    if (fast && renderFrame % 2 === 0) { p.ghosts.push([p.rx, p.ry]); if (p.ghosts.length > 5) p.ghosts.shift(); }
+    else if (!fast && p.ghosts.length && renderFrame % 2 === 0) p.ghosts.shift();
+    updateTrails(p, now);
   }
 
   const shx = (Math.random() - 0.5) * fx.shake, shy = (Math.random() - 0.5) * fx.shake;
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * (ox + shx * scale), dpr * (oy + shy * scale));
+  if (fx.zoom > 0.001) {
+    const z = 1 + fx.zoom;
+    ctx.translate(fx.zx, fx.zy); ctx.scale(z, z); ctx.translate(-fx.zx, -fx.zy);
+  }
 
   // 그림자
   for (const p of g.players) {
@@ -2696,13 +2960,6 @@ function render(now, k) {
       const mv = moveOf(p), first = mv.hits.length ? mv.hits[0].from : mv.fire || 0;
       if (p.af < first) drawWarn(ctx, p, pose, now);
     }
-    const trailArm = p.af >= 0 ? moveOf(p).arms[0] : null;
-    if (trailArm) {
-      const sgm = bladeSeg(p, pose, trailArm, p.rx, p.ry);
-      p.trail.push([(sgm.ax + sgm.bx) / 2, (sgm.ay + sgm.by) / 2, sgm.bx, sgm.by]);
-      if (p.trail.length > 7) p.trail.shift();
-    } else if (p.trail.length) p.trail.shift();
-
     if (p.dz > 0 && p.st !== ST.KO) drawDizzy(ctx, p, pose, now);
     if (p.st === ST.BLOCK) {
       ctx.strokeStyle = 'rgba(120,160,220,0.55)'; ctx.lineWidth = 4;
@@ -2729,7 +2986,7 @@ function render(now, k) {
     }
   }
 
-  if (g.projs) for (const a of g.projs) drawArrow(ctx, a);
+  if (g.projs) for (const a of g.projs) { if (a.kind === 'wave') drawWave(ctx, a); else drawArrow(ctx, a); }
 
   // 내 캐릭터 표시
   const me = g.players[g.me];
@@ -2746,6 +3003,21 @@ function render(now, k) {
     ctx.fillStyle = `rgba(168,40,32,${t * 0.85})`;
     ctx.beginPath(); ctx.moveTo(-L / 2, 0); ctx.quadraticCurveTo(0, -6 * t - 1, L / 2, 0); ctx.quadraticCurveTo(0, 3 * t, -L / 2, 0); ctx.fill();
     ctx.restore();
+  }
+  for (const b of fx.bursts) {
+    const t = b.life / b.max, r = b.r * (1.3 - t * 0.5);
+    const gr = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+    gr.addColorStop(0, `rgba(255,253,240,${(0.95 * t).toFixed(3)})`);
+    gr.addColorStop(0.35, `rgba(${b.col},${(0.6 * t).toFixed(3)})`);
+    gr.addColorStop(1, `rgba(${b.col},0)`);
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, TAU); ctx.fill();
+  }
+  for (const s of fx.streaks) {
+    const t = s.life / s.max, d0 = s.len * (1 - t) * 0.6, d1 = d0 + s.len * t;
+    const c = Math.cos(s.a), sn = Math.sin(s.a);
+    ctx.strokeStyle = `rgba(${s.col},${(0.9 * t).toFixed(3)})`; ctx.lineWidth = s.w * t + 0.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s.x + c * d0, s.y + sn * d0); ctx.lineTo(s.x + c * d1, s.y + sn * d1); ctx.stroke();
   }
   for (const p of fx.parts) {
     ctx.fillStyle = p.col + (p.life / p.max).toFixed(2) + ')';
@@ -2855,7 +3127,8 @@ function showLobby(title, code, msg, copy) {
 
 let wakeLock = null;
 async function enterGame() {
-  fx.parts.length = fx.slashes.length = fx.texts.length = 0;
+  fx.parts.length = fx.slashes.length = fx.texts.length = fx.bursts.length = fx.streaks.length = fx.rings.length = 0;
+  fx.zoom = 0;
   acc = 0;
   showScreen('game');
   clearInterval(net.linkTimer);
@@ -3033,7 +3306,7 @@ function selectChar(id) {
   const ch = CHAR[id];
   for (const pv of previews) {
     pv.card.classList.toggle('selected', pv.p.c === id);
-    pv.t = 0; pv.p.af = -1; pv.p.mv = 'n';
+    pv.t = 0; pv.step = 0; pv.p.af = -1; pv.p.mv = 'n'; pv.p.trails = {}; pv.p.trailAf = -1;
   }
   $('infoName').textContent = `${ch.hanja} ${ch.name}`;
   $('infoWeapon').textContent = `무기: ${ch.weaponName}`;
@@ -3066,24 +3339,37 @@ function renderPreviews(now, k) {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, cw, chh);
     const selected = p.c === selectedChar;
+    let oy = 0;
     if (selected) {
       pv.t += k;
+      const seq = [...CHAR[p.c].combo, 's'];
+      pv.step = pv.step || 0;
       let A = moveOf(p);
-      if (pv.t >= A.total + 40) {
+      const gap = p.mv === 's' ? 40 : 10;
+      if (pv.t >= A.total + gap) {
         pv.t = 0;
-        p.mv = p.mv === 's' ? 'n' : 's';
+        pv.step = (pv.step + 1) % seq.length;
+        p.mv = seq[pv.step];
         p.an++;
         A = moveOf(p);
       }
-      const f = Math.floor(pv.t);
+      const f = pv.t;
       p.af = f < A.total ? f : -1;
       p.st = p.af >= 0 ? ST.ATK : ST.IDLE;
-    } else { p.af = -1; p.mv = 'n'; p.st = ST.IDLE; }
+      p.g = true; p.vy = 0;
+      if (A.hop && p.af >= A.hop[0]) {
+        const t = p.af - A.hop[0], h = A.hop[1] * t - 0.4 * t * t;
+        if (h > 0) { oy = -h; p.g = false; p.vy = -A.hop[1] + 0.8 * t; }
+      }
+    } else { p.af = -1; p.mv = 'n'; p.st = ST.IDLE; pv.step = 0; p.g = true; }
     const s = Math.min(chh / 160, cw / 150);
     c.setTransform(s, 0, 0, s, cw * 0.3, chh - 10 * s);
     c.fillStyle = 'rgba(31,26,23,0.15)';
     c.beginPath(); c.ellipse(0, 2, 26, 4, 0, 0, Math.PI * 2); c.fill();
-    drawFighter(c, p, now, 0, 0, 1);
+    p.rx = 0; p.ry = oy;
+    updateTrails(p, now);
+    drawTrail(c, p);
+    drawFighter(c, p, now, 0, oy, 1);
   }
 }
 
