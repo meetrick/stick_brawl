@@ -182,7 +182,7 @@ Client ◀──(게임 상태 60Hz: 위치/속도/HP/모션 프레임 + 이벤�
 2. **Settings → Pages → Build and deployment** 에서 Source를 `Deploy from a branch`로 바꾸고, `main` 브랜치의 `/ (root)`를 고릅니다.
 3. 잠시 뒤 `https://<사용자명>.github.io/<저장소명>/` 에서 실행됩니다. WebRTC가 동작하려면 HTTPS가 필요한데, GitHub Pages는 HTTPS로 제공됩니다.
 4. 휴대폰에서 열고 **홈 화면에 추가**를 하면 주소창 없이 가로 전체화면으로 실행됩니다(PWA standalone).
-5. 코드를 바꿔 다시 배포할 때는 `index.html`의 `style.css?v=8`, `script.js?v=8` 숫자를 하나씩 올립니다. GitHub Pages는 파일을 약 10분간 캐시하므로, 숫자를 올려야 새 HTML과 예전 CSS/JS가 섞이지 않습니다.
+5. 코드를 바꿔 다시 배포할 때는 `index.html`의 `style.css?v=9`, `script.js?v=9` 숫자를 하나씩 올립니다. GitHub Pages는 파일을 약 10분간 캐시하므로, 숫자를 올려야 새 HTML과 예전 CSS/JS가 섞이지 않습니다.
 
 ## 로컬 테스트
 
