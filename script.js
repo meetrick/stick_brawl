@@ -2193,16 +2193,14 @@ function refreshInput() {
 let padButtons = [];
 let stickEl = null, stickKnob = null, stickRect = null;
 const stickAxis = { x: 0, y: 0 };
+let stickTouchId = null;
+const STICK_ZONE = 0.52; /* 화면 좌측 비율: 터치 시작 시 조이스틱 소환 */
 
 function cachePadRects() {
   padRects = padButtons.map(el => {
     const r = el.getBoundingClientRect();
     return { k: el.dataset.k, x0: r.left, y0: r.top, x1: r.right, y1: r.bottom, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2 };
   });
-  if (stickEl) {
-    const r = stickEl.getBoundingClientRect();
-    stickRect = { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2, rad: Math.min(r.width, r.height) * 0.5 };
-  }
 }
 
 function hitButton(x, y) {
@@ -2216,21 +2214,44 @@ function hitButton(x, y) {
   return best;
 }
 
-function inStick(x, y) {
-  if (!stickRect) return false;
-  const dx = x - stickRect.cx, dy = y - stickRect.cy;
-  return dx * dx + dy * dy <= (stickRect.rad * 1.15) ** 2;
+function stickHalf() {
+  return stickEl ? Math.min(stickEl.offsetWidth, stickEl.offsetHeight) * 0.5 : 48;
+}
+
+function inStickZone(x, y) {
+  if (x > window.innerWidth * STICK_ZONE) return false;
+  /* 우측 버튼과 겹치면 버튼 우선 */
+  return !hitButton(x, y);
+}
+
+function showStickAt(x, y) {
+  if (!stickEl || !stickKnob) return;
+  const half = stickHalf();
+  const cx = clamp(x, half + 4, window.innerWidth * STICK_ZONE);
+  const cy = clamp(y, half + 4, window.innerHeight - half - 4);
+  stickEl.style.left = `${(cx - half).toFixed(1)}px`;
+  stickEl.style.top = `${(cy - half).toFixed(1)}px`;
+  stickEl.classList.add('active');
+  stickRect = { cx, cy, rad: half };
+  stickAxis.x = stickAxis.y = 0;
+  stickKnob.style.transform = 'translate(0px, 0px)';
+}
+
+function hideStick() {
+  stickTouchId = null;
+  stickRect = null;
+  stickAxis.x = stickAxis.y = 0;
+  if (stickKnob) stickKnob.style.transform = 'translate(0px, 0px)';
+  if (stickEl) stickEl.classList.remove('active');
 }
 
 function setStick(x, y, active) {
-  if (!stickRect || !stickKnob) return;
-  if (!active) {
-    stickAxis.x = stickAxis.y = 0;
-    stickKnob.style.transform = 'translate(0px, 0px)';
+  if (!active || !stickRect || !stickKnob) {
+    if (!active) hideStick();
     return;
   }
   let dx = x - stickRect.cx, dy = y - stickRect.cy;
-  const max = stickRect.rad * 0.62;
+  const max = stickRect.rad * 0.72;
   const dist = Math.hypot(dx, dy) || 1;
   if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
   stickAxis.x = dx / max;
@@ -2248,20 +2269,42 @@ function applyStickTo(held) {
 
 function onPadTouch(e) {
   e.preventDefault();
-  if (!padRects.length || (padRects[0] && padRects[0].x1 === 0) || !stickRect) cachePadRects();
+  if (!padRects.length || (padRects[0] && padRects[0].x1 === 0)) cachePadRects();
   const now = noKeys();
+
+  /* 조이스틱을 잡던 손가락이 떨어지면 숨김 */
+  if (stickTouchId != null) {
+    let still = false;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === stickTouchId) { still = true; break; }
+    }
+    if (!still) hideStick();
+  }
+
+  /* 새 터치: 좌측 빈 곳을 누르면 그 자리에 조이스틱 */
+  if (e.type === 'touchstart' && stickTouchId == null) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (inStickZone(t.clientX, t.clientY)) {
+        stickTouchId = t.identifier;
+        showStickAt(t.clientX, t.clientY);
+        break;
+      }
+    }
+  }
+
   let stickTouch = null;
   for (let i = 0; i < e.touches.length; i++) {
     const t = e.touches[i];
-    if (inStick(t.clientX, t.clientY) || (stickTouch === null && e.type !== 'touchstart' && (Math.abs(stickAxis.x) > 0.01 || Math.abs(stickAxis.y) > 0.01) && t.clientX < window.innerWidth * 0.45)) {
-      if (stickTouch === null) stickTouch = t;
+    if (stickTouchId != null && t.identifier === stickTouchId) {
+      stickTouch = t;
       continue;
     }
     const k = hitButton(t.clientX, t.clientY);
     if (k) now[k] = true;
   }
+
   if (stickTouch) setStick(stickTouch.clientX, stickTouch.clientY, true);
-  else setStick(0, 0, false);
   applyStickTo(now);
   for (const k of KEYS) padHeld[k] = now[k];
   refreshInput();
@@ -2279,23 +2322,33 @@ function setupPad() {
   const mouseUpdate = e => {
     for (const k of KEYS) mouseHeld[k] = false;
     if (mouseDown) {
-      if (mouseOnStick || inStick(e.clientX, e.clientY)) {
-        mouseOnStick = true;
+      if (mouseOnStick) {
         setStick(e.clientX, e.clientY, true);
         applyStickTo(mouseHeld);
       } else {
         const k = hitButton(e.clientX, e.clientY);
         if (k) mouseHeld[k] = true;
       }
-    } else {
+    } else if (mouseOnStick) {
       mouseOnStick = false;
-      setStick(0, 0, false);
+      hideStick();
     }
     refreshInput();
   };
-  pad.addEventListener('mousedown', e => { mouseDown = true; cachePadRects(); mouseOnStick = inStick(e.clientX, e.clientY); mouseUpdate(e); });
+  pad.addEventListener('mousedown', e => {
+    mouseDown = true;
+    cachePadRects();
+    if (inStickZone(e.clientX, e.clientY)) {
+      mouseOnStick = true;
+      showStickAt(e.clientX, e.clientY);
+    } else {
+      mouseOnStick = false;
+    }
+    mouseUpdate(e);
+  });
   window.addEventListener('mousemove', e => { if (mouseDown) mouseUpdate(e); });
   window.addEventListener('mouseup', e => { mouseDown = false; mouseUpdate(e); });
+  window.addEventListener('resize', () => { cachePadRects(); if (stickTouchId == null && !mouseOnStick) hideStick(); });
 }
 
 const KEYMAP = {
