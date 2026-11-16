@@ -8,10 +8,15 @@
 /* ----------------------------- 상수 ----------------------------- */
 const W = 960, H = 540, GROUND = 462;
 const TICK_MS = 1000 / 60;
-const PEER_PREFIX = 'stickbrawl-v4-';
+const PEER_PREFIX = 'stickbrawl-v5-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const BASE_HP = 100;
 const GRAVITY = 0.8, MOVE_SPEED = 4.6, JUMP_V = 15.5;
+/* 2.5D 스테이지(4방향): x=좌우, z=전후(화면 위아래), y=점프 높이. 캐릭터는 정면으로 그리고 z로만 깊이감. */
+const Z_MIN = -70, Z_MAX = 70, Z_HIT = 40;
+const DEPTH = 0.85; /* z → 화면 Y (대각 스큐 없음) */
+const toScreen = (x, y, z) => ({ sx: x, sy: y + z * DEPTH });
+const groundSy = z => GROUND + z * DEPTH;
 const DASH_SPEED = 13, DASH_FRAMES = 12, DASH_INV = 10, DASH_CD = 40;
 const INTRO_FRAMES = 100, KO_FRAMES = 180, FIGHT_BANNER = 45;
 const HURT_W = 36, HURT_H = 114;
@@ -33,12 +38,13 @@ const HAN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', 
  */
 const WEAPONS = {
   twin:      { from: 4,  to: 36,  r: 7,  off: 0, grip2: null, tip: 0 },
-  glaive:    { from: 34, to: 104, r: 15, off: 4, grip2: -26, tip: 62, back: -46 },
-  serpent:   { from: 50, to: 110, r: 8,  off: 0, grip2: -28, tip: 74, back: -52 },
+  /* 장무기는 가운데를 쥐어 from이 음수: 품 안(자루)과 끝(날)을 모두 때릴 수 있다. tip 미만은 약한 자루 타격. */
+  glaive:    { from: -18, to: 88,  r: 15, off: 4, grip2: -22, tip: 42, back: -40 },
+  serpent:   { from: -22, to: 90,  r: 8,  off: 0, grip2: -24, tip: 48, back: -44 },
   sevenstar: { from: 4,  to: 58,  r: 10, off: 1, grip2: null, tip: 0 },
-  spear:     { from: 46, to: 98,  r: 9,  off: 0, grip2: -26, tip: 66, back: -44 },
-  pike:      { from: 30, to: 86,  r: 7,  off: 0, grip2: -24, tip: 64, back: -40 },
-  halberd:   { from: 46, to: 104, r: 11, off: 0, grip2: -26, tip: 70, back: -48 },
+  spear:     { from: -20, to: 86,  r: 9,  off: 0, grip2: -22, tip: 44, back: -38 },
+  pike:      { from: -16, to: 78,  r: 7,  off: 0, grip2: -20, tip: 40, back: -34 },
+  halberd:   { from: -18, to: 90, r: 11, off: 0, grip2: -22, tip: 46, back: -42 },
   saber:     { from: 4,  to: 50,  r: 9,  off: 1, grip2: null, tip: 0 },
   bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
 };
@@ -47,19 +53,19 @@ const WEAPONS = {
 const CHARACTERS = [
   {
     id: 'liubei', name: '유비', hanja: '劉備', weapon: 'twin', weaponName: '쌍고검 (雙股劍)',
-    desc: '밸런스형 · 한 번 공격에 두 번 베는 빠른 쌍검',
-    hp: 1.05, speed: 1.0, jump: 1.0, body: '#e0b422', accent: '#2e8b3d', fx: '#3aa655',
-    stats: { 체력: 3, 속도: 3, 공격력: 2, 공속: 4, 사거리: 2 },
+    desc: '빠른 기동과 공속 · 한 번 공격에 두 번 베는 쌍검',
+    hp: 1.05, speed: 1.18, jump: 1.06, body: '#e0b422', accent: '#2e8b3d', fx: '#3aa655',
+    stats: { 체력: 3, 속도: 4, 공격력: 2, 공속: 5, 사거리: 2 },
     idle: { main: [18, 14, -0.9], off: [10, 18, -0.4], lean: 0 },
     guard: { main: [16, -4, -1.2], off: [12, 2, -1.9], lean: -0.12 },
     attack: {
-      total: 24, lunge: [5, 3],
-      main: [[3, -6, -30, -2.4], [7, 34, 16, 0.9], [11, 28, 20, 1.1]],
-      off: [[5, 10, 18, -0.4], [8, -10, -26, -2.3], [12, 36, 6, 0.5], [16, 30, 12, 0.7]],
-      lean: [[7, 0.25], [12, 0.3], [16, 0.2]],
+      total: 20, lunge: [4, 3.5],
+      main: [[2, -6, -30, -2.4], [5, 34, 16, 0.9], [9, 28, 20, 1.1]],
+      off: [[4, 10, 18, -0.4], [6, -10, -26, -2.3], [10, 36, 6, 0.5], [13, 30, 12, 0.7]],
+      lean: [[5, 0.25], [10, 0.3], [13, 0.2]],
       hits: [
-        { from: 4, to: 7, arm: 'main', dmg: 8, kb: 4, up: 2 },
-        { from: 9, to: 12, arm: 'off', dmg: 9, kb: 6.5, up: 3 },
+        { from: 3, to: 6, arm: 'main', dmg: 8, kb: 4, up: 2 },
+        { from: 7, to: 10, arm: 'off', dmg: 9, kb: 6.5, up: 3 },
       ],
     },
     special: {
@@ -124,16 +130,16 @@ const CHARACTERS = [
   },
   {
     id: 'caocao', name: '조조', hanja: '曹操', weapon: 'sevenstar', weaponName: '칠성보도 (七星寶刀)',
-    desc: '짧은 쿨타임과 넓은 베기 궤적 · 빈틈이 적은 운영형',
-    hp: 1.0, speed: 1.0, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
-    stats: { 체력: 3, 속도: 3, 공격력: 3, 공속: 4, 사거리: 3 },
+    desc: '기본 베기에도 검기가 나가는 운영형 · 짧은 쿨타임',
+    hp: 1.0, speed: 1.08, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
+    stats: { 체력: 3, 속도: 4, 공격력: 3, 공속: 4, 사거리: 4 },
     idle: { main: [18, 12, -1.0], off: [-10, 26, 0], lean: 0 },
     guard: { main: [14, -4, -1.35], off: [-6, 10, 0], lean: -0.12 },
     attack: {
-      total: 20, lunge: [6, 3],
+      total: 20, lunge: [6, 3], wave: { f: 8, speed: 9, dmg: 5, life: 28 },
       main: [[4, -8, -30, -2.6], [8, 36, -4, -0.2], [11, 30, 20, 1.2]],
       lean: [[4, -0.1], [8, 0.2], [11, 0.25]],
-      hits: [{ from: 5, to: 11, arm: 'main', dmg: 12, kb: 7, up: 3 }],
+      hits: [{ from: 5, to: 11, arm: 'main', dmg: 11, kb: 6, up: 3 }],
     },
     special: {
       name: '간웅의 반격', hanja: '奸雄反擊', desc: '받아치기 자세. 자세 중에 공격받으면 흘려내고 즉시 강하게 반격한다',
@@ -641,11 +647,11 @@ function makePlayer(idx, charId, handicapped) {
   const p = {
     idx, c: ch.id, maxHp, hp: maxHp, hc: !!handicapped,
     ws: handicapped ? 1.3 : 1, hs: handicapped ? 0.8 : 1,
-    x: 0, y: GROUND, vx: 0, vy: 0, f: 1, g: true,
+    x: 0, y: GROUND, z: 0, vx: 0, vy: 0, vz: 0, f: 1, g: true,
     st: ST.IDLE, af: -1, an: 0, hm: {}, df: 0, dd: 1, dcd: 0, inv: 0, fl: 0, hit: 0, kt: 0,
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, luc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, bu: 0, prevSeg: null,
-    rx: 0, ry: GROUND, wp: 0, hpLag: maxHp, trails: {}, trailAf: -1, ghosts: [],
+    rx: 0, ry: GROUND, rz: 0, wp: 0, hpLag: maxHp, trails: {}, trailAf: -1, ghosts: [],
   };
   resetPlayer(p);
   return p;
@@ -654,15 +660,16 @@ function makePlayer(idx, charId, handicapped) {
 function resetPlayer(p) {
   p.x = p.rx = p.idx === 0 ? W * 0.3 : W * 0.7;
   p.y = p.ry = GROUND;
+  p.z = p.rz = (p.idx === 0 ? -12 : 12);
   p.f = p.idx === 0 ? 1 : -1;
-  p.vx = p.vy = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
+  p.vx = p.vy = p.vz = 0; p.g = true; p.hp = p.maxHp; p.hpLag = p.maxHp;
   p.st = ST.IDLE; p.af = -1; p.hm = {}; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
   p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trails = {}; p.trailAf = -1; p.ghosts.length = 0;
 }
 
 function newInput() {
-  return { l: false, r: false, j: false, a: false, d: false, s: false, u: false, jc: 0, ac: 0, dc: 0, sc: 0, uc: 0 };
+  return { l: false, r: false, f: false, b: false, j: false, a: false, d: false, s: false, u: false, jc: 0, ac: 0, dc: 0, sc: 0, uc: 0 };
 }
 
 /* ----------------------------- 게임 상태 ----------------------------- */
@@ -752,6 +759,7 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.st !== ST.BLOCK && p.gd < GUARD_MAX) p.gd = Math.min(GUARD_MAX, p.gd + 0.45);
 
   const dir = ctrl ? (inp.r ? 1 : 0) - (inp.l ? 1 : 0) : 0;
+  const zdir = ctrl ? (inp.b ? 1 : 0) - (inp.f ? 1 : 0) : 0;
   const toward = opp.x >= p.x ? 1 : -1;
   const back = dir !== 0 && dir === -toward;
   p.backT = back ? p.backT + 1 : 0;
@@ -827,16 +835,21 @@ function updatePlayer(p, inp, opp, ctrl) {
     }
     if (p.df <= 0 && !(p.af >= 0 && (moveOf(p).air || moveOf(p).hop))) {
       let target = dir * MOVE_SPEED * ch.speed;
-      if (p.af >= 0) target *= 0.2;
+      let zTarget = zdir * MOVE_SPEED * ch.speed * 0.92;
+      if (p.af >= 0) { target *= 0.2; zTarget *= 0.2; }
       else if (back && p.g) target *= 0.6;
-      p.vx += (target - p.vx) * (p.g ? (p.af >= 0 ? 0.15 : 0.35) : 0.12);
+      const blend = p.g ? (p.af >= 0 ? 0.15 : 0.35) : 0.12;
+      p.vx += (target - p.vx) * blend;
+      p.vz += (zTarget - p.vz) * blend;
+    } else if (p.df > 0) {
+      p.vz *= 0.85;
     }
     mv = moveOf(p);
     if (p.af >= 0 && mv.drive && p.af >= mv.drive[0] && p.af <= mv.drive[1]) p.vx = p.f * mv.drive[2];
 
-    const near = Math.abs(opp.x - p.x) < GUARD_RANGE;
+    const near = Math.hypot(opp.x - p.x, opp.z - p.z) < GUARD_RANGE;
     p.st = p.df > 0 ? ST.DASH : p.af >= 0 ? ST.ATK : !p.g ? ST.AIR
-      : back && near ? ST.GUARD : Math.abs(p.vx) > 0.6 ? ST.WALK : ST.IDLE;
+      : back && near ? ST.GUARD : (Math.abs(p.vx) > 0.6 || Math.abs(p.vz) > 0.6) ? ST.WALK : ST.IDLE;
   }
   if (p.bj > 0) p.bj--;
   if (p.ba > 0) p.ba--;
@@ -844,9 +857,11 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.bsp > 0) p.bsp--;
   if (p.bu > 0) p.bu--;
 
-  if (p.st === ST.HIT || p.st === ST.KO || p.st === ST.BLOCK) p.vx *= p.g ? 0.85 : 0.99;
+  if (p.st === ST.HIT || p.st === ST.KO || p.st === ST.BLOCK) { p.vx *= p.g ? 0.85 : 0.99; p.vz *= p.g ? 0.85 : 0.99; }
   if (!(p.df > 0 && !p.g)) p.vy += GRAVITY;
-  p.x += p.vx; p.y += p.vy;
+  p.x += p.vx; p.y += p.vy; p.z += p.vz;
+  if (p.z < Z_MIN) { p.z = Z_MIN; if (p.vz < 0) p.vz = 0; }
+  if (p.z > Z_MAX) { p.z = Z_MAX; if (p.vz > 0) p.vz = 0; }
   if (p.y >= GROUND) {
     p.y = GROUND;
     const fallV = p.vy;
@@ -854,7 +869,7 @@ function updatePlayer(p, inp, opp, ctrl) {
     if (!p.g) {
       p.g = true; p.ad = false; p.ak = false;
       if (p.mv === 'j' && p.af >= 0) { p.af = -1; p.mv = 'n'; }
-      if (p.hopped || fallV > 11) emit({ k: 'land', x: r1(p.x), y: GROUND, hv: p.hopped && p.af >= 0 && moveOf(p).fin ? 1 : 0 });
+      if (p.hopped || fallV > 11) emit({ k: 'land', x: r1(p.x), y: GROUND, z: r1(p.z), hv: p.hopped && p.af >= 0 && moveOf(p).fin ? 1 : 0 });
       p.hopped = false;
     }
   } else {
@@ -867,11 +882,15 @@ function updatePlayer(p, inp, opp, ctrl) {
 function separate(a, b) {
   if (a.st === ST.KO || b.st === ST.KO || a.df > 0 || b.df > 0) return;
   if (Math.abs(a.y - b.y) >= 90) return;
-  const dx = b.x - a.x, min = 34;
-  if (Math.abs(dx) >= min) return;
-  const s = dx >= 0 ? 1 : -1, push = (min - Math.abs(dx)) / 2;
-  a.x = clamp(a.x - s * push, 24, W - 24);
-  b.x = clamp(b.x + s * push, 24, W - 24);
+  if (Math.abs((a.z || 0) - (b.z || 0)) >= Z_HIT) return;
+  const dx = b.x - a.x, dz = (b.z || 0) - (a.z || 0), min = 34;
+  const dist = Math.hypot(dx, dz);
+  if (dist >= min || dist < 0.001) return;
+  const push = (min - dist) / 2, nx = dx / dist, nz = dz / dist;
+  a.x = clamp(a.x - nx * push, 24, W - 24);
+  b.x = clamp(b.x + nx * push, 24, W - 24);
+  a.z = clamp((a.z || 0) - nz * push, Z_MIN, Z_MAX);
+  b.z = clamp((b.z || 0) + nz * push, Z_MIN, Z_MAX);
 }
 
 function storePrevSeg(p) {
@@ -883,6 +902,7 @@ function storePrevSeg(p) {
 
 function checkHits(att, def) {
   if (att.af < 0 || att.st !== ST.ATK || def.st === ST.KO || def.inv > 0) return;
+  if (Math.abs((att.z || 0) - (def.z || 0)) > Z_HIT) return;
   const hits = moveOf(att).hits;
   const wd = WEAPONS[CHAR[att.c].weapon];
   let pose = null;
@@ -1018,7 +1038,7 @@ function doRoar(p, opp) {
   const targets = game.mode === 'story' && p.idx === 0 ? storyFoes() : [opp];
   for (const t of targets) {
     if (t.st === ST.KO || t.inv > 0) continue;
-    if (Math.abs(t.x - p.x) > R.range * p.ws || Math.abs(t.y - p.y) > 160) continue;
+    if (Math.hypot(t.x - p.x, (t.z || 0) - (p.z || 0)) > R.range * p.ws || Math.abs(t.y - p.y) > 160) continue;
     damage(p, t, { dmg: R.dmg, kb: 2, up: 0 }, { x: t.x, y: t.y - 70 });
     if (t.st !== ST.KO) { t.hit = R.stun; t.dz = R.stun; t.vx *= 0.3; }
   }
@@ -1026,34 +1046,38 @@ function doRoar(p, opp) {
 
 /* ----------------------------- 연습 모드 CPU ----------------------------- */
 function updateAI(ai, me, opp, inp) {
-  inp.l = inp.r = inp.a = false;
+  inp.l = inp.r = inp.f = inp.b = inp.a = false;
   if (game.phase !== PHASE.FIGHT || me.st === ST.KO) return;
-  const dx = opp.x - me.x, adx = Math.abs(dx), dir = dx >= 0 ? 1 : -1;
+  const dx = opp.x - me.x, dz = (opp.z || 0) - (me.z || 0);
+  const adx = Math.abs(dx), adz = Math.abs(dz), dir = dx >= 0 ? 1 : -1;
+  const dist = Math.hypot(dx, dz);
   const range = AI_RANGE[me.c] * me.ws;
   if (--ai.t <= 0) {
     ai.t = 10 + (Math.random() * 22) | 0;
     const r = Math.random();
-    ai.mode = adx > range ? (r < 0.85 ? 'approach' : 'wait') : (r < 0.22 ? 'retreat' : r < 0.42 ? 'wait' : 'approach');
+    ai.mode = dist > range ? (r < 0.85 ? 'approach' : 'wait') : (r < 0.22 ? 'retreat' : r < 0.42 ? 'wait' : 'approach');
     const gr = Math.random();
     ai.guard = gr < 0.3 ? 'hold' : gr < 0.38 ? 'parry' : null;
   }
-  let mv = 0;
-  if (ai.mode === 'approach' && adx > range * 0.7) mv = dir;
-  else if (ai.mode === 'retreat') mv = -dir;
-  if (me.af < 0 && adx < 220) {
-    if (ai.guard === 'hold' && (opp.af >= 0 || adx < AI_RANGE[opp.c] * 1.2)) mv = -dir;
+  let mv = 0, mz = 0;
+  if (ai.mode === 'approach' && dist > range * 0.7) { mv = dir; mz = dz === 0 ? 0 : (dz > 0 ? 1 : -1); }
+  else if (ai.mode === 'retreat') { mv = -dir; mz = dz === 0 ? 0 : (dz > 0 ? -1 : 1); }
+  else if (adz > 18) mz = dz > 0 ? 1 : -1;
+  if (me.af < 0 && dist < 220) {
+    if (ai.guard === 'hold' && (opp.af >= 0 || dist < AI_RANGE[opp.c] * 1.2)) mv = -dir;
     else if (ai.guard === 'parry' && opp.af >= 2) mv = -dir;
   }
   inp.l = mv < 0; inp.r = mv > 0;
-  if (me.mp >= METER_MAX && me.af < 0 && adx < AI_SP_RANGE[me.c] * me.ws && Math.random() < 0.05) {
+  inp.f = mz < 0; inp.b = mz > 0;
+  if (me.mp >= METER_MAX && me.af < 0 && dist < AI_SP_RANGE[me.c] * me.ws && Math.random() < 0.05) {
     if (me.c !== 'caocao' || (opp.af >= 0 && opp.af < 8)) inp.sc++;
   }
-  if (me.af < 0 && Math.abs(opp.y - me.y) < 80) {
-    if ((opp.st === ST.GUARD || opp.st === ST.BLOCK) && adx < 85 && Math.random() < 0.1) { inp.l = dir < 0; inp.r = dir > 0; inp.uc++; }
-    else if (adx < 58 && Math.random() < 0.07) { inp.l = inp.r = false; inp.uc++; }
+  if (me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT) {
+    if ((opp.st === ST.GUARD || opp.st === ST.BLOCK) && dist < 85 && Math.random() < 0.1) { inp.l = dir < 0; inp.r = dir > 0; inp.uc++; }
+    else if (dist < 58 && Math.random() < 0.07) { inp.l = inp.r = false; inp.uc++; }
   }
-  if (adx < range && me.af < 0 && Math.abs(opp.y - me.y) < 80 && Math.random() < 0.11) inp.ac++;
-  if (opp.af >= 0 && opp.af < 10 && adx < 170 && me.dcd <= 0 && Math.random() < 0.05) {
+  if (dist < range && me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT && Math.random() < 0.11) inp.ac++;
+  if (opp.af >= 0 && opp.af < 10 && dist < 170 && me.dcd <= 0 && Math.random() < 0.05) {
     inp.l = dir > 0; inp.r = dir < 0; inp.dc++;
   }
   if (Math.random() < 0.006 || (opp.y < me.y - 60 && Math.random() < 0.03)) inp.jc++;
@@ -1267,7 +1291,7 @@ function startStory(charId, stageIdx) {
   };
   const me = makePlayer(0, charId, hc);
   me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * STORY_HP_MUL);
-  me.x = me.rx = W * 0.35;
+  me.x = me.rx = W * 0.35; me.z = me.rz = 0;
   game.players.push(me);
   enterGame();
   storyTalk(st.intro, () => nextWave());
@@ -1299,7 +1323,7 @@ function startSurvival(charId) {
   };
   const me = makePlayer(0, charId, hc);
   me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * SURV_HP_MUL);
-  me.x = me.rx = W / 2;
+  me.x = me.rx = W / 2; me.z = me.rz = 0;
   game.players.push(me);
   enterGame();
   nextSurvivalWave();
@@ -1430,7 +1454,7 @@ function spawnEnemy(type, opts = {}) {
   if (Math.abs(x - me.x) < 140) x = W - x;
   const e = makePlayer(S.nextIdx++, type, false);
   const ch = CHAR[type], fac = FACTIONS[S.st.faction];
-  e.x = e.rx = x; e.f = x > me.x ? -1 : 1;
+  e.x = e.rx = x; e.z = e.rz = clamp((me.z || 0) + ((S.nextIdx % 5) - 2) * 16 + (Math.random() * 20 - 10), Z_MIN, Z_MAX); e.f = x > me.x ? -1 : 1;
   e.inp = newInput();
   e.ai = { t: 0, mode: 'approach', cd: 30 + Math.random() * 50 };
   e.inv = 20;
@@ -1504,7 +1528,7 @@ function onStoryKO(def, att) {
   }
   S.kills++;
   emit({ k: def === S.boss ? 'ko' : 'gko', x: r1(def.x), y: r1(def.y - 60), t: def.idx });
-  if (def.grunt && Math.random() < (S.survival ? 0.16 : 0.15)) g.items.push({ x: def.x, y: GROUND - 10, life: 600 });
+  if (def.grunt && Math.random() < (S.survival ? 0.16 : 0.15)) g.items.push({ x: def.x, y: GROUND - 10, z: def.z || 0, life: 600 });
   if (S.survival) {
     survivalScore(def);
     if (def === S.boss) { S.boss = null; g.hitstop = 16; storyHeal(0.25); }
@@ -1585,18 +1609,24 @@ function storyStep() {
 
 function separateSoft(a, b) {
   if (a.st === ST.KO || b.st === ST.KO || Math.abs(a.y - b.y) >= 90) return;
-  const dx = b.x - a.x, min = 24;
-  if (Math.abs(dx) >= min) return;
-  const s = dx >= 0 ? 1 : -1, push = (min - Math.abs(dx)) / 4;
-  a.x = clamp(a.x - s * push, 24, W - 24);
-  b.x = clamp(b.x + s * push, 24, W - 24);
+  if (Math.abs((a.z || 0) - (b.z || 0)) >= Z_HIT) return;
+  const dx = b.x - a.x, dz = (b.z || 0) - (a.z || 0), min = 24;
+  const dist = Math.hypot(dx, dz);
+  if (dist >= min || dist < 0.001) return;
+  const push = (min - dist) / 4, nx = dx / dist, nz = dz / dist;
+  a.x = clamp(a.x - nx * push, 24, W - 24);
+  b.x = clamp(b.x + nx * push, 24, W - 24);
+  a.z = clamp((a.z || 0) - nz * push, Z_MIN, Z_MAX);
+  b.z = clamp((b.z || 0) + nz * push, Z_MIN, Z_MAX);
 }
 
 function enemyAI(e, me, fighting) {
   const inp = e.inp;
-  inp.l = inp.r = inp.a = false;
+  inp.l = inp.r = inp.f = inp.b = inp.a = false;
   if (e.st === ST.KO || !fighting && !e.flee) return;
-  const dx = me.x - e.x, adx = Math.abs(dx), dir = dx >= 0 ? 1 : -1;
+  const dx = me.x - e.x, dz = (me.z || 0) - (e.z || 0);
+  const adx = Math.abs(dx), adz = Math.abs(dz), dir = dx >= 0 ? 1 : -1;
+  const dist = Math.hypot(dx, dz);
   if (e.flee) {
     const out = e.x < W / 2 ? -1 : 1;
     inp.l = out < 0; inp.r = out > 0;
@@ -1605,33 +1635,38 @@ function enemyAI(e, me, fighting) {
   }
   if (e.isBoss || !e.grunt) { updateAI(e.ai, e, me, inp); return; }
   if (e.ai.cd > 0) e.ai.cd--;
-  let mv = 0;
+  let mv = 0, mz = 0;
+  if (adz > 22) mz = dz > 0 ? 1 : -1;
   if (e.c === 'archer') {
     const wallBehind = (dir > 0 && e.x < 60) || (dir < 0 && e.x > W - 60);
     if (adx < 170 && !wallBehind) mv = -dir;
     else if (adx > 470) mv = dir;
-    if (e.af < 0 && e.ai.cd <= 0 && adx > 90 && adx < 560 && Math.abs(me.y - e.y) < 60) { inp.ac++; e.ai.cd = 80 + Math.random() * 70; }
+    if (e.af < 0 && e.ai.cd <= 0 && dist > 90 && dist < 560 && Math.abs(me.y - e.y) < 60) { inp.ac++; e.ai.cd = 80 + Math.random() * 70; }
   } else if (game.story.engaged.has(e.idx)) {
     const range = AI_RANGE[e.c];
-    if (adx > range * 0.8) mv = dir;
-    else if (e.af < 0 && e.ai.cd <= 0 && Math.abs(me.y - e.y) < 70) { inp.ac++; e.ai.cd = 55 + Math.random() * 50; }
+    if (dist > range * 0.8) { mv = dir; if (adz > 14) mz = dz > 0 ? 1 : -1; }
+    else if (e.af < 0 && e.ai.cd <= 0 && Math.abs(me.y - e.y) < 70 && adz < Z_HIT) { inp.ac++; e.ai.cd = 55 + Math.random() * 50; }
   } else {
     const want = 190 + (e.idx % 3) * 35;
     if (adx < want - 30) mv = -dir;
     else if (adx > want + 40) mv = dir;
+    const lane = ((e.idx * 37) % 5 - 2) * 18;
+    const wantZ = clamp((me.z || 0) + lane, Z_MIN, Z_MAX);
+    if (Math.abs((e.z || 0) - wantZ) > 12) mz = (e.z || 0) < wantZ ? 1 : -1;
   }
   inp.l = mv < 0; inp.r = mv > 0;
+  inp.f = mz < 0; inp.b = mz > 0;
 }
 
 function fireArrow(p) {
   if (!game.projs) return;
-  game.projs.push({ kind: 'arrow', x: p.x + p.f * 34, y: p.y - 96, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
+  game.projs.push({ kind: 'arrow', x: p.x + p.f * 34, y: p.y - 96, z: p.z || 0, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
   emit({ k: 'shoot', p: p.idx });
 }
 
 function spawnWave(p, W2) {
   if (!game.projs) return;
-  game.projs.push({ kind: 'wave', x: p.x + p.f * 46, y: p.y - 64, vx: p.f * W2.speed, vy: 0, owner: p, dmg: W2.dmg, life: W2.life, hit: new Set() });
+  game.projs.push({ kind: 'wave', x: p.x + p.f * 46, y: p.y - 64, z: p.z || 0, vx: p.f * W2.speed, vy: 0, owner: p, dmg: W2.dmg, life: W2.life, hit: new Set() });
   emit({ k: 'wavefx', p: p.idx });
 }
 
@@ -1664,6 +1699,7 @@ function updateProjs() {
         }
       }
       if (t.inv > 0 || (a.hit && a.hit.has(t.idx))) continue;
+      if (Math.abs((a.z || 0) - (t.z || 0)) > Z_HIT) continue;
       const hb = hurtbox(t), pad = a.kind === 'wave' ? 16 : 4;
       if (a.x < hb.x0 - pad || a.x > hb.x1 + pad || a.y < hb.y0 - pad || a.y > hb.y1) continue;
       const h = { dmg: a.dmg, kb: a.kind === 'wave' ? 7 : 3, up: 2 };
@@ -1694,7 +1730,7 @@ function updateItems(me) {
   const g = game;
   for (const it of g.items) {
     it.life--;
-    if (me.st !== ST.KO && Math.abs(me.x - it.x) < 30 && me.y > GROUND - 60) {
+    if (me.st !== ST.KO && Math.abs(me.x - it.x) < 30 && Math.abs((me.z || 0) - (it.z || 0)) < Z_HIT && me.y > GROUND - 60) {
       it.dead = true;
       const heal = 18;
       me.hp = Math.min(me.maxHp, me.hp + heal);
@@ -2009,7 +2045,7 @@ function onHostData(d) {
     case 'i':
       if (game) {
         const inp = game.inputs[1];
-        inp.l = !!d.l; inp.r = !!d.r; inp.j = !!d.j; inp.a = !!d.a; inp.d = !!d.d; inp.s = !!d.s; inp.u = !!d.u;
+        inp.l = !!d.l; inp.r = !!d.r; inp.f = !!d.f; inp.b = !!d.b; inp.j = !!d.j; inp.a = !!d.a; inp.d = !!d.d; inp.s = !!d.s; inp.u = !!d.u;
         inp.jc = d.jc | 0; inp.ac = d.ac | 0; inp.dc = d.dc | 0; inp.sc = d.sc | 0; inp.uc = d.uc | 0;
       }
       break;
@@ -2087,13 +2123,13 @@ function onClientData(d) {
 }
 
 function packPlayer(p) {
-  return [r1(p.x), r1(p.y), r2(p.vx), r2(p.vy), p.f, r1(p.hp), p.st, p.af, p.an, p.df, p.inv > 0 ? 1 : 0, p.fl, p.wins, p.g ? 1 : 0, p.kt,
+  return [r1(p.x), r1(p.y), r1(p.z || 0), r2(p.vx), r2(p.vy), r2(p.vz || 0), p.f, r1(p.hp), p.st, p.af, p.an, p.df, p.inv > 0 ? 1 : 0, p.fl, p.wins, p.g ? 1 : 0, p.kt,
     Math.max(0, MOVE_CODES.indexOf(p.mv)), Math.round(p.mp), Math.round(p.gd), p.dz];
 }
 
 function unpackPlayer(p, a) {
   let mv;
-  [p.x, p.y, p.vx, p.vy, p.f, p.hp, p.st, p.af, p.an, p.df, p.inv, p.fl, p.wins, p.g, p.kt, mv, p.mp, p.gd, p.dz] = a;
+  [p.x, p.y, p.z, p.vx, p.vy, p.vz, p.f, p.hp, p.st, p.af, p.an, p.df, p.inv, p.fl, p.wins, p.g, p.kt, mv, p.mp, p.gd, p.dz] = a;
   p.g = !!p.g;
   p.mv = MOVE_CODES[mv] || 'n';
 }
@@ -2121,7 +2157,7 @@ function applyState(d) {
   g.phase = d.ph; g.pt = d.pt; g.round = d.rd; g.winner = d.w;
   d.p.forEach((a, i) => unpackPlayer(g.players[i], a));
   g.projs = (d.pj || []).map(([k, x, y, vx, vy, o, life]) => ({ kind: k ? 'wave' : 'arrow', x, y, vx, vy, owner: g.players[o] || g.players[0], life }));
-  if (newRound) for (const p of g.players) { p.rx = p.x; p.ry = p.y; p.hpLag = p.hp; p.trails = {}; p.trailAf = -1; }
+  if (newRound) for (const p of g.players) { p.rx = p.x; p.ry = p.y; p.rz = p.z; p.hpLag = p.hp; p.trails = {}; p.trailAf = -1; }
 }
 
 function onDisconnect(msg) {
@@ -2131,9 +2167,9 @@ function onDisconnect(msg) {
 }
 
 /* ----------------------------- 입력 (가상 패드 + 키보드) ----------------------------- */
-const KEYS = ['l', 'r', 'j', 'a', 'd', 's', 'u'];
+const KEYS = ['l', 'r', 'f', 'b', 'j', 'a', 'd', 's', 'u'];
 const localInput = newInput();
-const noKeys = () => ({ l: false, r: false, j: false, a: false, d: false, s: false, u: false });
+const noKeys = () => { const o = {}; for (const k of KEYS) o[k] = false; return o; };
 const padHeld = noKeys(), keyHeld = noKeys(), mouseHeld = noKeys();
 let padRects = [];
 
@@ -2155,11 +2191,18 @@ function refreshInput() {
 }
 
 let padButtons = [];
+let stickEl = null, stickKnob = null, stickRect = null;
+const stickAxis = { x: 0, y: 0 };
+
 function cachePadRects() {
   padRects = padButtons.map(el => {
     const r = el.getBoundingClientRect();
     return { k: el.dataset.k, x0: r.left, y0: r.top, x1: r.right, y1: r.bottom, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2 };
   });
+  if (stickEl) {
+    const r = stickEl.getBoundingClientRect();
+    stickRect = { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2, rad: Math.min(r.width, r.height) * 0.5 };
+  }
 }
 
 function hitButton(x, y) {
@@ -2173,15 +2216,53 @@ function hitButton(x, y) {
   return best;
 }
 
+function inStick(x, y) {
+  if (!stickRect) return false;
+  const dx = x - stickRect.cx, dy = y - stickRect.cy;
+  return dx * dx + dy * dy <= (stickRect.rad * 1.15) ** 2;
+}
+
+function setStick(x, y, active) {
+  if (!stickRect || !stickKnob) return;
+  if (!active) {
+    stickAxis.x = stickAxis.y = 0;
+    stickKnob.style.transform = 'translate(0px, 0px)';
+    return;
+  }
+  let dx = x - stickRect.cx, dy = y - stickRect.cy;
+  const max = stickRect.rad * 0.62;
+  const dist = Math.hypot(dx, dy) || 1;
+  if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
+  stickAxis.x = dx / max;
+  stickAxis.y = dy / max;
+  stickKnob.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+}
+
+function applyStickTo(held) {
+  const dead = 0.28;
+  held.l = stickAxis.x < -dead;
+  held.r = stickAxis.x > dead;
+  held.f = stickAxis.y < -dead;
+  held.b = stickAxis.y > dead;
+}
+
 function onPadTouch(e) {
   e.preventDefault();
-  if (!padRects.length || padRects[0].x1 === 0) cachePadRects();
+  if (!padRects.length || (padRects[0] && padRects[0].x1 === 0) || !stickRect) cachePadRects();
   const now = noKeys();
+  let stickTouch = null;
   for (let i = 0; i < e.touches.length; i++) {
     const t = e.touches[i];
+    if (inStick(t.clientX, t.clientY) || (stickTouch === null && e.type !== 'touchstart' && (Math.abs(stickAxis.x) > 0.01 || Math.abs(stickAxis.y) > 0.01) && t.clientX < window.innerWidth * 0.45)) {
+      if (stickTouch === null) stickTouch = t;
+      continue;
+    }
     const k = hitButton(t.clientX, t.clientY);
     if (k) now[k] = true;
   }
+  if (stickTouch) setStick(stickTouch.clientX, stickTouch.clientY, true);
+  else setStick(0, 0, false);
+  applyStickTo(now);
   for (const k of KEYS) padHeld[k] = now[k];
   refreshInput();
 }
@@ -2189,23 +2270,38 @@ function onPadTouch(e) {
 function setupPad() {
   const pad = $('pad');
   padButtons = [...pad.querySelectorAll('.btn')];
+  stickEl = $('stick');
+  stickKnob = $('stickKnob');
   for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
     pad.addEventListener(type, onPadTouch, { passive: false });
   }
-  let mouseDown = false;
+  let mouseDown = false, mouseOnStick = false;
   const mouseUpdate = e => {
     for (const k of KEYS) mouseHeld[k] = false;
-    if (mouseDown) { const k = hitButton(e.clientX, e.clientY); if (k) mouseHeld[k] = true; }
+    if (mouseDown) {
+      if (mouseOnStick || inStick(e.clientX, e.clientY)) {
+        mouseOnStick = true;
+        setStick(e.clientX, e.clientY, true);
+        applyStickTo(mouseHeld);
+      } else {
+        const k = hitButton(e.clientX, e.clientY);
+        if (k) mouseHeld[k] = true;
+      }
+    } else {
+      mouseOnStick = false;
+      setStick(0, 0, false);
+    }
     refreshInput();
   };
-  pad.addEventListener('mousedown', e => { mouseDown = true; cachePadRects(); mouseUpdate(e); });
+  pad.addEventListener('mousedown', e => { mouseDown = true; cachePadRects(); mouseOnStick = inStick(e.clientX, e.clientY); mouseUpdate(e); });
   window.addEventListener('mousemove', e => { if (mouseDown) mouseUpdate(e); });
   window.addEventListener('mouseup', e => { mouseDown = false; mouseUpdate(e); });
 }
 
 const KEYMAP = {
   ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
-  ArrowUp: 'j', KeyW: 'j', Space: 'j',
+  ArrowUp: 'f', KeyW: 'f', ArrowDown: 'b', KeyS: 'b',
+  Space: 'j',
   KeyJ: 'a', KeyZ: 'a', KeyK: 'd', KeyX: 'd', ShiftLeft: 'd', ShiftRight: 'd',
   KeyL: 's', KeyC: 's', KeyI: 'u', KeyV: 'u',
 };
@@ -2502,12 +2598,23 @@ function buildBackground() {
   mist.addColorStop(0, 'rgba(239,231,208,0)'); mist.addColorStop(1, 'rgba(239,231,208,0.7)');
   c.fillStyle = mist; c.fillRect(x0, 360, x1 - x0, GROUND - 360);
 
-  // 땅
-  const gg = c.createLinearGradient(0, GROUND, 0, y1);
-  gg.addColorStop(0, '#d6c9a6'); gg.addColorStop(1, '#c9b98f');
-  c.fillStyle = gg; c.fillRect(x0, GROUND, x1 - x0, y1 - GROUND);
+  // 2.5D 바닥 (전후 레인): 위쪽이 먼 곳, 아래쪽이 카메라 쪽
+  const backY = groundSy(Z_MIN) - 8, frontY = groundSy(Z_MAX) + 36;
+  const gg = c.createLinearGradient(0, backY, 0, frontY);
+  gg.addColorStop(0, '#cfc3a0'); gg.addColorStop(0.55, '#d6c9a6'); gg.addColorStop(1, '#bca97c');
+  c.fillStyle = gg;
+  c.beginPath();
+  c.moveTo(x0, backY); c.lineTo(x1, backY); c.lineTo(x1, Math.max(frontY, y1)); c.lineTo(x0, Math.max(frontY, y1));
+  c.closePath(); c.fill();
 
-  // 붓 터치 지면선
+  // 깊이 가이드 선
+  c.strokeStyle = 'rgba(31,26,23,0.12)'; c.lineWidth = 1.5;
+  for (let z = Z_MIN; z <= Z_MAX; z += 28) {
+    const gy = groundSy(z);
+    c.beginPath(); c.moveTo(x0, gy); c.lineTo(x1, gy); c.stroke();
+  }
+
+  // 붓 터치 지면선 (중앙 레인)
   c.fillStyle = INK;
   c.beginPath();
   c.moveTo(x0, GROUND - 2);
@@ -2515,19 +2622,20 @@ function buildBackground() {
   for (let x = x1; x >= x0; x -= 5) c.lineTo(x, GROUND + 2 + Math.abs(Math.sin(x * 0.023 + 1)) * 3);
   c.closePath(); c.fill();
 
-  // 풀 / 돌
+  // 풀 / 돌 (전후 레인에 흩뿌림)
   c.strokeStyle = 'rgba(31,26,23,0.45)'; c.lineWidth = 1.5; c.lineCap = 'round';
   for (let i = 0; i < 60; i++) {
     const x = x0 + rnd() * (x1 - x0), h = 4 + rnd() * 9;
+    const gy = groundSy(Z_MIN + rnd() * (Z_MAX - Z_MIN));
     c.beginPath();
-    c.moveTo(x, GROUND); c.quadraticCurveTo(x - 2, GROUND - h * 0.6, x - 4 + rnd() * 2, GROUND - h);
-    c.moveTo(x + 2, GROUND); c.quadraticCurveTo(x + 3, GROUND - h * 0.5, x + 6, GROUND - h * 0.8);
+    c.moveTo(x, gy); c.quadraticCurveTo(x - 2, gy - h * 0.6, x - 4 + rnd() * 2, gy - h);
+    c.moveTo(x + 2, gy); c.quadraticCurveTo(x + 3, gy - h * 0.5, x + 6, gy - h * 0.8);
     c.stroke();
   }
   c.fillStyle = 'rgba(31,26,23,0.18)';
   for (let i = 0; i < 40; i++) {
     c.beginPath();
-    c.ellipse(x0 + rnd() * (x1 - x0), GROUND + 12 + rnd() * (y1 - GROUND - 12), 2 + rnd() * 5, 1 + rnd() * 2, 0, 0, Math.PI * 2);
+    c.ellipse(x0 + rnd() * (x1 - x0), groundSy(Z_MIN + rnd() * (Z_MAX - Z_MIN)) + 8 + rnd() * 18, 2 + rnd() * 5, 1 + rnd() * 2, 0, 0, Math.PI * 2);
     c.fill();
   }
 
@@ -3119,9 +3227,9 @@ function drawPhaseBanner(c) {
 
 function drawControlsHint(c) {
   const lines = [
-    '상대 반대쪽 방향을 누르고 있으면 막기 · 맞기 직전에 누르면 튕겨내기',
-    '[체술] 주먹 · 앞+[체술] 발차기(막기 깨기) · 공중 [체술] 날아차기',
-    '긴 무기는 품 안으로 파고들면 약해요 · 게이지가 차면 [필살]',
+    'WASD/방향키 4방향 이동 · Space 점프 · 상대 반대쪽이면 막기/튕겨내기',
+    '[무기] 콤보 · [체술] 주먹 · 앞+[체술] 발차기 · 공중 [체술] 날아차기',
+    '장무기는 가운데를 쥐어 원·근거리 모두 가능 · 게이지가 차면 [필살]',
   ];
   c.save();
   c.font = '700 14px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -3186,11 +3294,12 @@ function drawArrow(c, a) {
 
 function drawBun(c, it, now) {
   const bob = Math.sin(now * 0.006 + it.x) * 2;
-  const x = it.x, y = it.y + bob;
+  const scr = toScreen(it.x, it.y + bob, it.z || 0);
+  const x = scr.sx, y = scr.sy, gz = groundSy(it.z || 0);
   c.save();
   c.globalAlpha = it.life < 90 ? (Math.floor(it.life / 6) % 2 ? 0.4 : 1) : 1;
   c.fillStyle = 'rgba(31,26,23,0.15)';
-  c.beginPath(); c.ellipse(x, GROUND + 2, 12, 3, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(x, gz + 2, 12, 3, 0, 0, Math.PI * 2); c.fill();
   c.fillStyle = '#fbf6ea'; c.strokeStyle = INK; c.lineWidth = 1.8;
   c.beginPath(); c.ellipse(x, y, 13, 9, 0, Math.PI, 0); c.lineTo(x + 13, y + 3); c.lineTo(x - 13, y + 3); c.closePath(); c.fill(); c.stroke();
   c.lineWidth = 1.2;
@@ -3288,14 +3397,15 @@ function render(now, k) {
 
   for (const p of g.players) {
     if (g.mode === 'client') {
-      const d = Math.hypot(p.x - p.rx, p.y - p.ry);
-      if (d > 120) { p.rx = p.x; p.ry = p.y; } else { const a = 1 - Math.pow(0.45, k); p.rx += (p.x - p.rx) * a; p.ry += (p.y - p.ry) * a; }
-    } else { p.rx = p.x; p.ry = p.y; }
-    if (p.st === ST.WALK || p.st === ST.GUARD) p.wp += p.vx * p.f * 0.09 * k;
+      const d = Math.hypot(p.x - p.rx, p.y - p.ry, (p.z || 0) - (p.rz || 0));
+      if (d > 120) { p.rx = p.x; p.ry = p.y; p.rz = p.z; }
+      else { const a = 1 - Math.pow(0.45, k); p.rx += (p.x - p.rx) * a; p.ry += (p.y - p.ry) * a; p.rz += ((p.z || 0) - (p.rz || 0)) * a; }
+    } else { p.rx = p.x; p.ry = p.y; p.rz = p.z; }
+    if (p.st === ST.WALK || p.st === ST.GUARD) p.wp += Math.hypot(p.vx, p.vz || 0) * 0.09 * k;
     p.hpLag += (p.hp - p.hpLag) * Math.min(1, 0.06 * k);
     if (p.hpLag < p.hp) p.hpLag = p.hp;
     const fast = p.st === ST.DASH || (p.st === ST.ATK && Math.abs(p.vx) > 6.5);
-    if (fast && renderFrame % 2 === 0) { p.ghosts.push([p.rx, p.ry]); if (p.ghosts.length > 5) p.ghosts.shift(); }
+    if (fast && renderFrame % 2 === 0) { p.ghosts.push([p.rx, p.ry, p.rz]); if (p.ghosts.length > 5) p.ghosts.shift(); }
     else if (!fast && p.ghosts.length && renderFrame % 2 === 0) p.ghosts.shift();
     updateTrails(p, now);
   }
@@ -3307,26 +3417,31 @@ function render(now, k) {
     ctx.translate(fx.zx, fx.zy); ctx.scale(z, z); ctx.translate(-fx.zx, -fx.zy);
   }
 
-  // 그림자
+  // 그림자 (발 밑: 점프 높이와 z 깊이 반영)
   for (const p of g.players) {
-    const hgt = GROUND - p.ry, s = clamp(1 - hgt / 320, 0.3, 1);
-    ctx.fillStyle = `rgba(31,26,23,${0.2 * s})`;
-    ctx.beginPath(); ctx.ellipse(p.rx, GROUND + 3, 28 * s, 5 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const gz = groundSy(p.rz || 0);
+    const hgt = gz - toScreen(p.rx, p.ry, p.rz || 0).sy, sc = clamp(1 - hgt / 320, 0.3, 1);
+    const scx = toScreen(p.rx, GROUND, p.rz || 0).sx;
+    ctx.fillStyle = `rgba(31,26,23,${0.22 * sc})`;
+    ctx.beginPath(); ctx.ellipse(scx, gz + 3, 30 * sc, 7 * sc, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   // 대시 잔상
-  for (const p of g.players) p.ghosts.forEach((gh, i) => drawFighter(ctx, p, now, gh[0], gh[1], 0.1 + i * 0.05));
+  for (const p of g.players) p.ghosts.forEach((gh, i) => {
+    const scr = toScreen(gh[0], gh[1], gh[2] || 0);
+    drawFighter(ctx, p, now, scr.sx, scr.sy, 0.1 + i * 0.05);
+  });
 
   if (g.items) for (const it of g.items) drawBun(ctx, it, now);
 
-  // 무기 궤적 + 캐릭터 (내 캐릭터를 맨 앞에)
+  // 무기 궤적 + 캐릭터: z가 클수록(앞쪽) 나중에 그려 가림
+  const order = g.players.slice().sort((a, b) => (a.rz || 0) - (b.rz || 0));
   const meP = g.players[g.me];
-  const order = g.players.filter(p => p !== meP);
-  if (meP) order.push(meP);
   for (const p of order) {
+    const scr = toScreen(p.rx, p.ry, p.rz || 0);
     drawTrail(ctx, p);
     const fade = g.mode === 'story' && p !== meP && p.st === ST.KO ? clamp(1 - (p.kt - 40) / 30, 0, 1) : 1;
-    const pose = drawFighter(ctx, p, now, p.rx, p.ry, fade);
+    const pose = drawFighter(ctx, p, now, scr.sx, scr.sy, fade);
     if (p !== meP && g.mode === 'story' && p.af >= 0 && p.st === ST.ATK) {
       const mv = moveOf(p), first = mv.hits.length ? mv.hits[0].from : mv.fire || 0;
       if (p.af < first) drawWarn(ctx, p, pose, now);
@@ -3335,19 +3450,19 @@ function render(now, k) {
     if (p.st === ST.BLOCK) {
       ctx.strokeStyle = 'rgba(120,160,220,0.55)'; ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(p.rx + p.f * 6, p.ry - 62, 52, p.f > 0 ? -0.9 : Math.PI - 0.9, p.f > 0 ? 0.9 : Math.PI + 0.9);
+      ctx.arc(scr.sx + p.f * 6, scr.sy - 62, 52, p.f > 0 ? -0.9 : Math.PI - 0.9, p.f > 0 ? 0.9 : Math.PI + 0.9);
       ctx.stroke();
     }
 
     if (showHitbox) {
-      const hb = hurtbox(p, p.rx, p.ry);
+      const hb = hurtbox(p, scr.sx, scr.sy);
       ctx.strokeStyle = 'rgba(30,110,220,0.8)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(hb.x0, hb.y0, hb.x1 - hb.x0, hb.y1 - hb.y0);
       const hits = moveOf(p).hits;
       const arms = p.af >= 0 && moveOf(p).arms.length ? moveOf(p).arms : CHAR[p.c].weapon === 'twin' ? ['main', 'off'] : ['main'];
       for (const arm of arms) {
         const active = p.af >= 0 && hits.some(h => h.arm === arm && p.af >= h.from && p.af <= h.to);
-        const sgm = bladeSeg(p, pose, arm, p.rx, p.ry);
+        const sgm = bladeSeg(p, pose, arm, scr.sx, scr.sy);
         ctx.strokeStyle = active ? 'rgba(230,30,30,0.9)' : 'rgba(230,120,30,0.45)';
         ctx.lineWidth = sgm.r * 2; ctx.lineCap = 'round';
         ctx.globalAlpha = 0.45;
@@ -3362,9 +3477,10 @@ function render(now, k) {
   // 내 캐릭터 표시
   const me = g.players[g.me];
   if (me && me.st !== ST.KO) {
-    const yy = me.ry - 150 + Math.sin(now * 0.006) * 3;
+    const mscr = toScreen(me.rx, me.ry, me.rz || 0);
+    const yy = mscr.sy - 150 + Math.sin(now * 0.006) * 3;
     ctx.fillStyle = RED;
-    ctx.beginPath(); ctx.moveTo(me.rx - 7, yy); ctx.lineTo(me.rx + 7, yy); ctx.lineTo(me.rx, yy + 9); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(mscr.sx - 7, yy); ctx.lineTo(mscr.sx + 7, yy); ctx.lineTo(mscr.sx, yy + 9); ctx.closePath(); ctx.fill();
   }
 
   // 타격 이펙트

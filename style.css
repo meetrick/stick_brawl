@@ -404,16 +404,49 @@ button:disabled {
 
 .cluster.left {
   left: max(3vw, env(safe-area-inset-left));
-  width: calc(var(--b) * 3.25);
-  height: calc(var(--b) * 1.9);
+  width: calc(var(--b) * 2.35);
+  height: calc(var(--b) * 2.35);
   --b: clamp(54px, 19vh, 92px);
 }
 
 .cluster.right {
   right: max(3vw, env(safe-area-inset-right));
-  width: calc(var(--b) * 2.6);
-  height: calc(var(--b) * 2.4);
+  width: calc(var(--b) * 2.85);
+  height: calc(var(--b) * 2.85);
   --b: clamp(54px, 19vh, 92px);
+}
+
+.stick {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--b) * 2.2);
+  height: calc(var(--b) * 2.2);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.stick-base {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 250, 235, 0.22);
+  border: 3px solid rgba(31, 26, 23, 0.4);
+  box-shadow: inset 0 0 0 calc(var(--b) * 0.42) rgba(31, 26, 23, 0.06);
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--b) * 0.92);
+  height: calc(var(--b) * 0.92);
+  margin: calc(var(--b) * -0.46) 0 0 calc(var(--b) * -0.46);
+  border-radius: 50%;
+  background: rgba(255, 250, 235, 0.55);
+  border: 3px solid rgba(31, 26, 23, 0.5);
+  transform: translate(0, 0);
+  will-change: transform;
 }
 
 .btn {
@@ -438,39 +471,45 @@ button:disabled {
   transform: scale(0.93);
 }
 
-.cluster.left .btn[data-k="l"] { left: 0; bottom: 0; }
-.cluster.left .btn[data-k="r"] { left: calc(var(--b) * 2.25); bottom: 0; }
-.cluster.left .btn.jump { left: calc(var(--b) * 1.125); bottom: calc(var(--b) * 0.85); }
-
+/* 우측: 점프 / 체술 / 무기를 한 덩어리로, 위쪽에 대시·필살 */
 .cluster.right .btn.atk {
   right: 0;
   bottom: 0;
-  width: calc(var(--b) * 1.3);
-  height: calc(var(--b) * 1.3);
-  font-size: calc(var(--b) * 0.36);
-}
-
-.cluster.right .btn.dash {
-  right: calc(var(--b) * 1.5);
-  bottom: calc(var(--b) * 1.05);
-  width: calc(var(--b) * 0.9);
-  height: calc(var(--b) * 0.9);
+  width: calc(var(--b) * 1.25);
+  height: calc(var(--b) * 1.25);
+  font-size: calc(var(--b) * 0.32);
 }
 
 .cluster.right .btn.body {
-  right: calc(var(--b) * 1.45);
+  right: calc(var(--b) * 1.35);
   bottom: 0;
   width: calc(var(--b) * 0.95);
   height: calc(var(--b) * 0.95);
   font-size: calc(var(--b) * 0.27);
 }
 
+.cluster.right .btn.jump {
+  right: calc(var(--b) * 0.55);
+  bottom: calc(var(--b) * 1.3);
+  width: calc(var(--b) * 0.95);
+  height: calc(var(--b) * 0.95);
+  font-size: calc(var(--b) * 0.27);
+}
+
+.cluster.right .btn.dash {
+  right: calc(var(--b) * 1.6);
+  bottom: calc(var(--b) * 1.15);
+  width: calc(var(--b) * 0.85);
+  height: calc(var(--b) * 0.85);
+  font-size: calc(var(--b) * 0.24);
+}
+
 .cluster.right .btn.sp {
-  right: calc(var(--b) * 0.2);
-  bottom: calc(var(--b) * 1.45);
-  width: calc(var(--b) * 0.9);
-  height: calc(var(--b) * 0.9);
-  font-size: calc(var(--b) * 0.26);
+  right: calc(var(--b) * 1.55);
+  bottom: calc(var(--b) * 2.05);
+  width: calc(var(--b) * 0.85);
+  height: calc(var(--b) * 0.85);
+  font-size: calc(var(--b) * 0.24);
   color: rgba(31, 26, 23, 0.35);
   border-style: dashed;
 }

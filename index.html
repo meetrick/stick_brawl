@@ -18,7 +18,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23e6ddc5'/%3E%3Ccircle cx='380' cy='130' r='60' fill='%23b8322a' opacity='.85'/%3E%3Cpath d='M300 250 L440 90' stroke='%238a9099' stroke-width='16' stroke-linecap='round'/%3E%3Cg stroke='%231f1a17' stroke-width='24' stroke-linecap='round' fill='none'%3E%3Ccircle cx='230' cy='140' r='42' fill='%23f3ead2'/%3E%3Cpath d='M230 182 L220 300 M220 300 L170 410 M220 300 L280 405 M226 215 L300 250 M226 215 L160 260'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="apple-touch-icon" id="appleIcon" href="">
 
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=12">
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -28,15 +28,17 @@
     <!-- 모바일 가상 패드 (터치 좌표 기반 히트 테스트) -->
     <div id="pad" class="hidden">
       <div class="cluster left">
-        <div class="btn" data-k="l">◀</div>
-        <div class="btn jump" data-k="j">점프</div>
-        <div class="btn" data-k="r">▶</div>
+        <div class="stick" id="stick">
+          <div class="stick-base"></div>
+          <div class="stick-knob" id="stickKnob"></div>
+        </div>
       </div>
       <div class="cluster right">
         <div class="btn sp" id="spBtn" data-k="s">필살</div>
         <div class="btn dash" data-k="d">대시</div>
+        <div class="btn jump" data-k="j">점프</div>
         <div class="btn body" data-k="u">체술</div>
-        <div class="btn atk" data-k="a">공격</div>
+        <div class="btn atk" data-k="a">무기</div>
       </div>
     </div>
     <button id="exitBtn" class="hidden" type="button">나가기</button>
@@ -191,6 +193,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=10"></script>
+  <script src="script.js?v=12"></script>
 </body>
 </html>
