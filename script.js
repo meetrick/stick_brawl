@@ -39,13 +39,14 @@ const HAN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', 
 const WEAPONS = {
   twin:      { from: 4,  to: 36,  r: 7,  off: 0, grip2: null, tip: 0 },
   /* 장무기는 가운데를 쥐어 from이 음수: 품 안(자루)과 끝(날)을 모두 때릴 수 있다. tip 미만은 약한 자루 타격. */
-  glaive:    { from: -18, to: 88,  r: 15, off: 4, grip2: -22, tip: 42, back: -40 },
-  serpent:   { from: -22, to: 90,  r: 8,  off: 0, grip2: -24, tip: 48, back: -44 },
-  sevenstar: { from: 4,  to: 58,  r: 10, off: 1, grip2: null, tip: 0 },
-  spear:     { from: -20, to: 86,  r: 9,  off: 0, grip2: -22, tip: 44, back: -38 },
-  pike:      { from: -16, to: 78,  r: 7,  off: 0, grip2: -20, tip: 40, back: -34 },
-  halberd:   { from: -18, to: 90, r: 11, off: 0, grip2: -22, tip: 46, back: -42 },
-  saber:     { from: 4,  to: 50,  r: 9,  off: 1, grip2: null, tip: 0 },
+  /* 관우: 중간 그립 · 사거리↓ 기동↑. tip 미만은 자루 약타. */
+  glaive:    { from: -30, to: 68,  r: 14, off: 4, grip2: -16, tip: 28, back: -38 },
+  serpent:   { from: -22, to: 86,  r: 8,  off: 0, grip2: -24, tip: 46, back: -42 },
+  sevenstar: { from: 4,  to: 56,  r: 10, off: 1, grip2: null, tip: 0 },
+  spear:     { from: -18, to: 80,  r: 9,  off: 0, grip2: -20, tip: 40, back: -36 },
+  pike:      { from: -16, to: 74,  r: 7,  off: 0, grip2: -20, tip: 38, back: -34 },
+  halberd:   { from: -20, to: 84, r: 11, off: 0, grip2: -20, tip: 42, back: -40 },
+  saber:     { from: 4,  to: 48,  r: 9,  off: 1, grip2: null, tip: 0 },
   bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
 };
 
@@ -85,40 +86,40 @@ const CHARACTERS = [
   },
   {
     id: 'guanyu', name: '관우', hanja: '關羽', weapon: 'glaive', weaponName: '청룡언월도 (靑龍偃月刀)',
-    desc: '느리지만 묵직한 한 방 · 넓은 베기 궤적 · 휘두르는 동안 경직 무시',
-    hp: 1.15, speed: 0.8, jump: 0.92, body: '#1f5e33', accent: '#2f8a4d', fx: '#1f9e7a',
-    stats: { 체력: 5, 속도: 1, 공격력: 5, 공속: 1, 사거리: 4 },
-    idle: { main: [16, 10, -1.2], off: [0, 0, 0], lean: 0 },
-    guard: { main: [14, -6, -1.45], lean: -0.12 },
+    desc: '중간 그립의 언월도 · 묵직한 베기 + 쓸 만한 기동 · 휘두르는 동안 경직 무시',
+    hp: 1.12, speed: 1.02, jump: 1.0, body: '#1f5e33', accent: '#2f8a4d', fx: '#1f9e7a',
+    stats: { 체력: 4, 속도: 3, 공격력: 5, 공속: 3, 사거리: 3 },
+    idle: { main: [14, 8, -1.15], off: [0, 0, 0], lean: 0 },
+    guard: { main: [12, -6, -1.4], lean: -0.12 },
     attack: {
-      total: 52, lunge: [21, 5], armor: [14, 26],
-      main: [[16, -14, -28, -2.6], [21, 10, -34, -1.5], [25, 34, -4, 0], [29, 32, 10, 0.9], [36, 32, 10, 0.9]],
-      lean: [[16, -0.2], [25, 0.2], [29, 0.3], [36, 0.3]],
-      hits: [{ from: 19, to: 29, arm: 'main', dmg: 20, kb: 12, up: 6 }],
+      total: 34, lunge: [12, 4.5], armor: [8, 18],
+      main: [[8, -12, -26, -2.5], [12, 8, -32, -1.4], [16, 32, -2, 0.1], [20, 30, 10, 0.85], [26, 28, 10, 0.85]],
+      lean: [[8, -0.18], [16, 0.22], [20, 0.28], [26, 0.25]],
+      hits: [{ from: 11, to: 19, arm: 'main', dmg: 16, kb: 10, up: 5 }],
     },
     special: {
       name: '청룡승천', hanja: '靑龍昇天', desc: '언월도를 한 바퀴 크게 휘둘러 앞뒤를 베고 내려찍는다 (경직 무시)',
-      total: 56, lunge: [[18, 4], [38, 6]], armor: [4, 46],
-      main: [[10, -14, -28, -2.6], [18, 34, -4, 0], [22, 28, 18, 1.2], [26, -6, 24, 2.4], [30, -30, 0, 3.14], [34, -14, -30, 4.0], [38, 14, -34, 4.7], [44, 32, 10, 7.18], [50, 32, 10, 7.18]],
-      lean: [[10, -0.2], [18, 0.2], [26, 0], [34, -0.15], [44, 0.3], [50, 0.3]],
+      total: 48, lunge: [[14, 4], [32, 5.5]], armor: [4, 40],
+      main: [[8, -12, -26, -2.5], [14, 32, -2, 0.1], [18, 26, 16, 1.1], [22, -4, 22, 2.3], [26, -28, 0, 3.14], [30, -12, -28, 4.0], [34, 12, -32, 4.7], [38, 30, 10, 7.0], [44, 30, 10, 7.0]],
+      lean: [[8, -0.18], [14, 0.2], [22, 0], [30, -0.12], [38, 0.28], [44, 0.28]],
       hits: [
-        { from: 16, to: 31, arm: 'main', dmg: 14, kb: 2.5, up: 9 },
-        { from: 36, to: 46, arm: 'main', dmg: 20, kb: 13, up: 7 },
+        { from: 12, to: 26, arm: 'main', dmg: 12, kb: 2.5, up: 8 },
+        { from: 30, to: 40, arm: 'main', dmg: 16, kb: 12, up: 6 },
       ],
     },
   },
   {
     id: 'zhangfei', name: '장비', hanja: '張飛', weapon: 'serpent', weaponName: '장팔사모 (丈八蛇矛)',
     desc: '빠른 발 · 앞으로 뛰어들며 찌르는 긴 사거리의 강력한 찌르기',
-    hp: 0.9, speed: 1.15, jump: 1.05, body: '#151515', accent: '#c0392b', fx: '#d0392b',
-    stats: { 체력: 2, 속도: 4, 공격력: 4, 공속: 2, 사거리: 5 },
+    hp: 0.92, speed: 1.12, jump: 1.05, body: '#151515', accent: '#c0392b', fx: '#d0392b',
+    stats: { 체력: 2, 속도: 4, 공격력: 4, 공속: 3, 사거리: 5 },
     idle: { main: [14, 8, -0.25], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
     attack: {
-      total: 38, lunge: [12, 6.5],
-      main: [[10, -12, 6, -0.08], [14, 40, 10, 0.05], [20, 40, 10, 0.05]],
-      lean: [[10, -0.15], [14, 0.35], [20, 0.35]],
-      hits: [{ from: 12, to: 17, arm: 'main', dmg: 16, kb: 10, up: 4 }],
+      total: 32, lunge: [10, 6],
+      main: [[8, -12, 6, -0.08], [12, 40, 10, 0.05], [18, 38, 10, 0.05]],
+      lean: [[8, -0.15], [12, 0.35], [18, 0.32]],
+      hits: [{ from: 10, to: 15, arm: 'main', dmg: 14, kb: 9, up: 4 }],
     },
     special: {
       name: '장판교의 포효', hanja: '長坂橋', desc: '천지를 울리는 고함으로 가까운 적을 기절시킨다 (막기 불가)',
@@ -131,15 +132,15 @@ const CHARACTERS = [
   {
     id: 'caocao', name: '조조', hanja: '曹操', weapon: 'sevenstar', weaponName: '칠성보도 (七星寶刀)',
     desc: '기본 베기에도 검기가 나가는 운영형 · 짧은 쿨타임',
-    hp: 1.0, speed: 1.08, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
-    stats: { 체력: 3, 속도: 4, 공격력: 3, 공속: 4, 사거리: 4 },
+    hp: 1.0, speed: 1.06, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
+    stats: { 체력: 3, 속도: 3, 공격력: 3, 공속: 4, 사거리: 4 },
     idle: { main: [18, 12, -1.0], off: [-10, 26, 0], lean: 0 },
     guard: { main: [14, -4, -1.35], off: [-6, 10, 0], lean: -0.12 },
     attack: {
-      total: 20, lunge: [6, 3], wave: { f: 8, speed: 9, dmg: 5, life: 28 },
+      total: 20, lunge: [6, 3], wave: { f: 8, speed: 8.5, dmg: 4, life: 26 },
       main: [[4, -8, -30, -2.6], [8, 36, -4, -0.2], [11, 30, 20, 1.2]],
       lean: [[4, -0.1], [8, 0.2], [11, 0.25]],
-      hits: [{ from: 5, to: 11, arm: 'main', dmg: 11, kb: 6, up: 3 }],
+      hits: [{ from: 5, to: 11, arm: 'main', dmg: 10, kb: 5.5, up: 3 }],
     },
     special: {
       name: '간웅의 반격', hanja: '奸雄反擊', desc: '받아치기 자세. 자세 중에 공격받으면 흘려내고 즉시 강하게 반격한다',
@@ -152,15 +153,15 @@ const CHARACTERS = [
   {
     id: 'zhaoyun', name: '조자룡', hanja: '趙子龍', weapon: 'spear', weaponName: '애각창 (涯角槍)',
     desc: '최고의 기동력과 점프력 · 딜레이 없는 연속 찌르기',
-    hp: 0.8, speed: 1.3, jump: 1.22, body: '#f7f5ef', accent: '#2f6fd6', fx: '#3d7fe0',
-    stats: { 체력: 1, 속도: 5, 공격력: 1, 공속: 5, 사거리: 4 },
+    hp: 0.82, speed: 1.28, jump: 1.2, body: '#f7f5ef', accent: '#2f6fd6', fx: '#3d7fe0',
+    stats: { 체력: 1, 속도: 5, 공격력: 2, 공속: 5, 사거리: 4 },
     idle: { main: [14, 6, -0.2], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
     attack: {
       total: 14, lunge: [4, 2.5], alt: 9,
-      main: [[3, 2, 8, -0.08], [6, 40, 6, 0.02], [9, 38, 6, 0.02]],
+      main: [[3, 2, 8, -0.08], [6, 38, 6, 0.02], [9, 36, 6, 0.02]],
       lean: [[3, -0.05], [6, 0.3], [9, 0.3]],
-      hits: [{ from: 4, to: 8, arm: 'main', dmg: 7, kb: 4, up: 2 }],
+      hits: [{ from: 4, to: 8, arm: 'main', dmg: 8, kb: 4, up: 2 }],
     },
     special: {
       name: '칠진칠출', hanja: '七進七出', desc: '무적 상태로 돌진하며 세 번 연속으로 꿰뚫는다',
@@ -177,15 +178,15 @@ const CHARACTERS = [
   {
     id: 'lubu', name: '여포', hanja: '呂布', weapon: 'halberd', weaponName: '방천화극 (方天畫戟)',
     desc: '천하무쌍의 맹장 · 긴 사거리와 강한 베기, 고른 능력치',
-    hp: 1.1, speed: 1.05, jump: 1.05, body: '#8b1a1a', accent: '#c9a227', fx: '#d4892a',
+    hp: 1.08, speed: 1.08, jump: 1.04, body: '#8b1a1a', accent: '#c9a227', fx: '#d4892a',
     stats: { 체력: 4, 속도: 3, 공격력: 4, 공속: 3, 사거리: 4 },
     idle: { main: [16, 8, -0.7], off: [0, 0, 0], lean: 0 },
     guard: { main: [14, -6, -1.45], lean: -0.12 },
     attack: {
-      total: 32, lunge: [11, 6],
-      main: [[8, -10, -4, -0.45], [12, 40, 2, 0.05], [17, 36, 14, 0.6], [22, 34, 14, 0.6]],
-      lean: [[8, -0.15], [12, 0.35], [17, 0.3]],
-      hits: [{ from: 11, to: 17, arm: 'main', dmg: 12, kb: 8, up: 3 }],
+      total: 28, lunge: [9, 5.5],
+      main: [[6, -10, -4, -0.45], [10, 38, 2, 0.05], [14, 34, 12, 0.55], [20, 32, 12, 0.55]],
+      lean: [[6, -0.15], [10, 0.35], [14, 0.28]],
+      hits: [{ from: 9, to: 15, arm: 'main', dmg: 13, kb: 8, up: 3 }],
     },
     special: {
       name: '천하무쌍', hanja: '天下無雙', desc: '방천화극을 쉴 새 없이 돌리며 돌진해 앞뒤의 적을 모두 휩쓴다 (경직 무시)',
@@ -293,16 +294,16 @@ const COMBOS = {
   ],
   guanyu: [
     {
-      name: '횡소천군', total: 40, armor: [10, 22], lunge: [[16, 5]],
-      main: [[10, -24, 2, 3.0], [16, 4, 30, 1.6], [21, 36, 10, 0.25], [27, 26, 0, -0.6], [32, 24, 2, -0.7]],
-      lean: [[10, -0.2], [21, 0.25], [27, 0.15]],
-      hits: [{ from: 14, to: 23, arm: 'main', dmg: 15, kb: 11, up: 4 }],
+      name: '횡소천군', total: 30, armor: [6, 16], lunge: [[10, 4.5]],
+      main: [[6, -22, 2, 3.0], [10, 4, 28, 1.55], [14, 34, 8, 0.2], [20, 24, 0, -0.55], [24, 22, 2, -0.65]],
+      lean: [[6, -0.18], [14, 0.24], [20, 0.12]],
+      hits: [{ from: 9, to: 16, arm: 'main', dmg: 13, kb: 9, up: 4 }],
     },
     {
-      name: '청룡 도약참', total: 54, fin: true, hop: [8, 10, 4], armor: [6, 30],
-      main: [[8, -6, -30, -2.0], [16, -16, -26, -2.9], [22, 10, -34, -1.5], [27, 34, -2, 0.2], [31, 32, 12, 1.0], [42, 32, 12, 1.0]],
-      lean: [[8, -0.2], [16, -0.35], [24, 0.2], [31, 0.4], [42, 0.35]],
-      hits: [{ from: 22, to: 33, arm: 'main', dmg: 18, kb: 12, up: 7 }],
+      name: '청룡 도약참', total: 42, fin: true, hop: [6, 9, 4], armor: [4, 24],
+      main: [[6, -6, -28, -2.0], [12, -14, -24, -2.8], [16, 8, -32, -1.4], [20, 32, -2, 0.15], [24, 30, 10, 0.9], [34, 30, 10, 0.9]],
+      lean: [[6, -0.18], [12, -0.3], [18, 0.2], [24, 0.35], [34, 0.3]],
+      hits: [{ from: 16, to: 26, arm: 'main', dmg: 15, kb: 11, up: 6 }],
     },
   ],
   zhangfei: [
@@ -450,8 +451,8 @@ const MOVE_CODES = ['n', 's', 'k', 'j', 'p', 'n2', 'n3'];
 const COMBO_MOVES = new Set(['n', 'n2', 'n3', 'k']);
 const moveOf = p => CHAR[p.c][MOVES[p.mv] || 'attack'];
 
-const AI_RANGE = { liubei: 62, guanyu: 125, zhangfei: 150, caocao: 88, zhaoyun: 128, lubu: 132, sword: 72, pike: 118, archer: 400, elite: 88 };
-const AI_SP_RANGE = { liubei: 75, guanyu: 135, zhangfei: 220, caocao: 160, zhaoyun: 170, lubu: 140, sword: 0, pike: 0, archer: 0, elite: 0 };
+const AI_RANGE = { liubei: 62, guanyu: 98, zhangfei: 140, caocao: 86, zhaoyun: 118, lubu: 124, sword: 72, pike: 112, archer: 400, elite: 88 };
+const AI_SP_RANGE = { liubei: 75, guanyu: 115, zhangfei: 210, caocao: 155, zhaoyun: 160, lubu: 135, sword: 0, pike: 0, archer: 0, elite: 0 };
 
 /* ----------------------------- 유틸 ----------------------------- */
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -501,8 +502,10 @@ function ik(sx, sy, tx, ty, l1, l2, bend) {
  * 렌더링과 히트 판정이 같은 포즈를 공유하므로 "보이는 무기 = 판정"이 된다.
  * 좌표는 발 위치(0,0) 기준, 오른쪽을 바라보는 로컬 좌표.
  */
+const weaponId = p => p.lootWep || CHAR[p.c].weapon;
+
 function computePose(p, now) {
-  const ch = CHAR[p.c], wd = WEAPONS[ch.weapon];
+  const ch = CHAR[p.c], wd = WEAPONS[weaponId(p)];
   const A = p.af >= 0 ? moveOf(p) : null;
   let m, o, lean;
   if (A && A.guardArms) {
@@ -607,7 +610,7 @@ function bladeSeg(p, pose, arm, ox = p.x, oy = p.y) {
   if (arm === 'fist') {
     return { ax: ox + p.f * pose.oe.x, ay: oy + pose.oe.y, bx: ox + p.f * pose.oh.x, by: oy + pose.oh.y, r: 8 * p.ws };
   }
-  const wd = WEAPONS[CHAR[p.c].weapon];
+  const wd = WEAPONS[weaponId(p)];
   const hand = arm === 'off' ? pose.oh : pose.mh;
   const w = arm === 'off' ? pose.ow : pose.w;
   const g = arm === 'off' ? 0 : pose.grip || 0;
@@ -652,6 +655,7 @@ function makePlayer(idx, charId, handicapped) {
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, luc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, bu: 0, prevSeg: null,
     rx: 0, ry: GROUND, rz: 0, wp: 0, hpLag: maxHp, trails: {}, trailAf: -1, ghosts: [],
+    mount: null, lootWep: null, jTap: 0, mountHit: null,
   };
   resetPlayer(p);
   return p;
@@ -666,6 +670,7 @@ function resetPlayer(p) {
   p.st = ST.IDLE; p.af = -1; p.hm = {}; p.df = 0; p.dcd = 0; p.inv = 0; p.fl = 0; p.hit = 0; p.kt = 0;
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
   p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trails = {}; p.trailAf = -1; p.ghosts.length = 0;
+  p.mount = null; p.lootWep = null; p.jTap = 0; p.mountHit = null;
 }
 
 function newInput() {
@@ -745,7 +750,13 @@ function nextAttackKind(p) {
 function updatePlayer(p, inp, opp, ctrl) {
   const ch = CHAR[p.c];
 
-  if (inp.jc !== p.ljc) { p.ljc = inp.jc; if (ctrl) p.bj = 7; }
+  if (inp.jc !== p.ljc) {
+    p.ljc = inp.jc;
+    if (ctrl) {
+      if (p.mount && p.jTap > 0) dismountHorse(p);
+      else { p.bj = 7; if (p.mount) p.jTap = 16; }
+    }
+  }
   if (inp.ac !== p.lac) { p.lac = inp.ac; if (ctrl) p.ba = 8; }
   if (inp.dc !== p.ldc) { p.ldc = inp.dc; if (ctrl) p.bd = 6; }
   if ((inp.sc | 0) !== p.lsc) { p.lsc = inp.sc | 0; if (ctrl) p.bsp = 8; }
@@ -831,11 +842,14 @@ function updatePlayer(p, inp, opp, ctrl) {
       }
     }
     if (p.bj > 0 && p.g && p.af < 0 && p.df <= 0) {
-      p.bj = 0; p.vy = -JUMP_V * ch.jump; p.g = false;
+      p.bj = 0;
+      p.vy = -JUMP_V * ch.jump * (p.mount ? 1.08 : 1);
+      p.g = false;
     }
     if (p.df <= 0 && !(p.af >= 0 && (moveOf(p).air || moveOf(p).hop))) {
-      let target = dir * MOVE_SPEED * ch.speed;
-      let zTarget = zdir * MOVE_SPEED * ch.speed * 0.92;
+      const mspd = MOVE_SPEED * ch.speed * (p.mount ? 1.38 : 1);
+      let target = dir * mspd;
+      let zTarget = zdir * mspd * 0.92;
       if (p.af >= 0) { target *= 0.2; zTarget *= 0.2; }
       else if (back && p.g) target *= 0.6;
       const blend = p.g ? (p.af >= 0 ? 0.15 : 0.35) : 0.12;
@@ -856,6 +870,7 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.bd > 0) p.bd--;
   if (p.bsp > 0) p.bsp--;
   if (p.bu > 0) p.bu--;
+  if (p.jTap > 0) p.jTap--;
 
   if (p.st === ST.HIT || p.st === ST.KO || p.st === ST.BLOCK) { p.vx *= p.g ? 0.85 : 0.99; p.vz *= p.g ? 0.85 : 0.99; }
   if (!(p.df > 0 && !p.g)) p.vy += GRAVITY;
@@ -876,7 +891,19 @@ function updatePlayer(p, inp, opp, ctrl) {
     p.g = false;
   }
   if (p.x < 24) { p.x = 24; if (p.vx < 0) p.vx = 0; }
-  if (p.x > W - 24) { p.x = W - 24; if (p.vx > 0) p.vx = 0; }
+  let xMax = W - 24;
+  if (game && game.story && game.story.survival && p.idx === 0 && game.story.phase === 'fight') {
+    const foesLeft = game.story.queue.length + storyFoes().length;
+    if (foesLeft > 0) xMax = Math.min(xMax, game.story.gateX || W * 0.72);
+  }
+  if (p.x > xMax) { p.x = xMax; if (p.vx > 0) p.vx = 0; }
+  /* 말: 이동·대시 시 스태미나 소모 */
+  if (p.mount && p.idx === 0) {
+    const moving = Math.hypot(p.vx, p.vz || 0) > 0.8;
+    if (moving) p.mount.stam = Math.max(0, p.mount.stam - 0.045);
+    if (p.df > 0) p.mount.stam = Math.max(0, p.mount.stam - 0.25);
+    if (p.mount.stam <= 0) dismountHorse(p, true);
+  }
 }
 
 function separate(a, b) {
@@ -904,7 +931,7 @@ function checkHits(att, def) {
   if (att.af < 0 || att.st !== ST.ATK || def.st === ST.KO || def.inv > 0) return;
   if (Math.abs((att.z || 0) - (def.z || 0)) > Z_HIT) return;
   const hits = moveOf(att).hits;
-  const wd = WEAPONS[CHAR[att.c].weapon];
+  const wd = WEAPONS[weaponId(att)];
   let pose = null;
   for (let i = 0; i < hits.length; i++) {
     const h = hits[i];
@@ -947,22 +974,32 @@ function applyHit(att, def, h, i, pt) {
 
 function damage(att, def, h, pt) {
   if (att.dmgMul) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * att.dmgMul)) };
+  if (att.mount) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * 1.22)), kb: h.kb * 1.15 };
   const g = game, dmv = def.af >= 0 ? moveOf(def) : null;
   if (g.story && g.story.survival) {
     if (att.idx === 0) survivalComboHit();
     else if (def.idx === 0) g.story.combo = 0;
   }
   const dir = att.x <= def.x ? 1 : -1;
-  def.hp = Math.max(0, def.hp - h.dmg);
+  let dmg = h.dmg;
+  if (def.mount) {
+    const soak = Math.min(def.mount.stam, Math.round(dmg * 0.7));
+    def.mount.stam -= soak;
+    dmg = Math.max(1, dmg - soak);
+    emit({ k: 'horse', x: r1(def.x), y: r1(def.y - 90), d: soak });
+    if (def.mount.stam <= 0) dismountHorse(def, true);
+  }
+  def.hp = Math.max(0, def.hp - dmg);
   def.fl = 10;
-  if (att.mv !== 's') att.mp = Math.min(METER_MAX, att.mp + h.dmg * 1.1);
-  def.mp = Math.min(METER_MAX, def.mp + h.dmg * 1.4);
+  if (att.mv !== 's') att.mp = Math.min(METER_MAX, att.mp + dmg * 1.1);
+  def.mp = Math.min(METER_MAX, def.mp + dmg * 1.4);
+  if (att.mount) att.mount.stam = Math.max(0, att.mount.stam - 1.2);
   const armored = dmv && dmv.armor && def.af >= dmv.armor[0] && def.af <= dmv.armor[1] && def.hp > 0;
   if (armored) {
     def.vx += dir * 1.2;
   } else {
     def.af = -1; def.mv = 'n'; def.df = 0; def.bs = 0;
-    def.hit = Math.round(10 + h.dmg * 0.5);
+    def.hit = Math.round(10 + dmg * 0.5);
     def.vx = dir * h.kb;
     def.vy = -(h.up ?? 3);
     def.g = def.vy >= 0 && def.g;
@@ -970,8 +1007,8 @@ function damage(att, def, h, pt) {
   }
   if (def.x <= 34 || def.x >= W - 34) att.vx -= dir * h.kb * 0.7;
   const fin = att.af >= 0 && (moveOf(att).fin || att.mv === 's') ? 1 : 0;
-  g.hitstop = Math.max(g.hitstop, def.grunt ? (fin ? 5 : 2) : fin ? 9 : h.dmg >= 18 ? 8 : 4);
-  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: h.dmg, t: def.idx, hv: h.dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0, g: def.grunt ? 1 : 0, fin, c: att.c });
+  g.hitstop = Math.max(g.hitstop, def.grunt ? (fin ? 5 : 2) : fin ? 9 : dmg >= 18 ? 8 : 4);
+  emit({ k: 'hit', x: r1(pt.x), y: r1(pt.y), d: dmg, t: def.idx, hv: dmg >= 18 ? 1 : 0, a: armored ? 1 : 0, w: h.weak ? 1 : 0, g: def.grunt ? 1 : 0, fin, c: att.c });
 
   if (def.hp <= 0 && g.mode === 'story') {
     def.st = ST.KO; def.af = -1; def.mv = 'n'; def.df = 0; def.hit = 0; def.kt = 0; def.dz = 0;
@@ -1298,7 +1335,7 @@ function startStory(charId, stageIdx) {
 }
 
 /* ----------------------------- 서바이벌 모드 -----------------------------
- * 쓰러질 때까지 끝없는 웨이브. 웨이브마다 적이 늘고 강해지며 5웨이브마다 영웅 보스가 나온다.
+ * 쓰러질 때까지 끝없는 웨이브. 웨이브 클리어 후 전진 스크롤 → (3구간마다) 주막 → 다음 테마.
  * 점수 = 격파 점수 × 콤보 배율(연속 타격 50회에서 최대 ×2) + 웨이브 보너스.
  */
 const SURV_POINTS = { sword: 100, pike: 120, archer: 150, elite: 400 };
@@ -1306,6 +1343,14 @@ const SURV_BOSS_POINTS = 1500;
 const SURV_FACTIONS = ['yellow', 'dong', 'yuan', 'wei', 'shu'];
 const COMBO_KEEP = 150;
 const SURV_HP_MUL = 2.5;
+const ADVANCE_FRAMES = 110;
+const JOURNEY_THEMES = [
+  { id: 'dusk', title: '황혼 들판', hanja: '黃昏', sky: ['#efe7d0', '#e0c9a0'], sun: [0.78, 130, 50, 'rgba(178,48,38,0.55)'], ground: ['#cfc3a0', '#d6c9a6', '#bca97c'], mark: ['天', '下', '路', '上'] },
+  { id: 'gate', title: '성문 앞', hanja: '城門', sky: ['#e8e0cc', '#c8bda0'], sun: [0.22, 105, 38, 'rgba(120,90,60,0.4)'], ground: ['#c4b896', '#bbae88', '#a89870'], mark: ['城', '門', '前', '夜'] },
+  { id: 'market', title: '장마당', hanja: '市井', sky: ['#f0e6d0', '#e2d2b0'], sun: [0.86, 95, 42, 'rgba(200,120,40,0.42)'], ground: ['#d2c4a0', '#c8b890', '#b5a478'], mark: ['市', '井', '喧', '囂'] },
+  { id: 'alley', title: '주막 골목', hanja: '酒幕', sky: ['#d8d0c0', '#b0a898'], sun: [0.55, 78, 30, 'rgba(70,55,90,0.4)'], ground: ['#b8ac90', '#a89c80', '#968870'], mark: ['酒', '幕', '燈', '火'] },
+];
+let bgThemeId = 'dusk';
 
 function startSurvival(charId) {
   const hc = $('handicap').checked;
@@ -1319,14 +1364,134 @@ function startSurvival(charId) {
       wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
       phase: 'fight', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
       score: 0, combo: 0, comboT: 0, maxCombo: 0, hpMul: 1, dmgMul: 1, maxEngaged: MAX_ENGAGED,
+      cam: 0, theme: 0, journey: 0, crowds: [], props: [], advanceT: 0, gateX: W * 0.72,
     },
   };
   const me = makePlayer(0, charId, hc);
   me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * SURV_HP_MUL);
-  me.x = me.rx = W / 2; me.z = me.rz = 0;
+  me.x = me.rx = W * 0.32; me.z = me.rz = 0;
   game.players.push(me);
+  setJourneyTheme(0, true);
   enterGame();
   nextSurvivalWave();
+}
+
+function setJourneyTheme(idx, rebuild) {
+  const S = game && game.story;
+  const t = JOURNEY_THEMES[((idx % JOURNEY_THEMES.length) + JOURNEY_THEMES.length) % JOURNEY_THEMES.length];
+  if (S) S.theme = ((idx % JOURNEY_THEMES.length) + JOURNEY_THEMES.length) % JOURNEY_THEMES.length;
+  bgThemeId = t.id;
+  if (rebuild !== false) buildBackground();
+  return t;
+}
+
+function spawnJourneyScenery(themeIdx) {
+  const S = game.story;
+  const th = JOURNEY_THEMES[themeIdx % JOURNEY_THEMES.length];
+  S.crowds = [];
+  S.props = [];
+  for (let i = 0; i < 10; i++) {
+    S.crowds.push({
+      x: 40 + Math.random() * (W + 420),
+      z: Z_MIN + 8 + Math.random() * (Z_MAX - Z_MIN - 16),
+      bob: Math.random() * TAU,
+      cheer: Math.random(),
+      tall: 0.85 + Math.random() * 0.3,
+    });
+  }
+  for (let i = 0; i < 6; i++) {
+    S.props.push({
+      kind: th.prop || th.id,
+      x: 80 + i * 160 + Math.random() * 40,
+      z: Z_MIN + 10 + (i % 2) * 30,
+    });
+  }
+}
+
+function beginSurvivalAdvance() {
+  const g = game, S = g.story, me = g.players[0];
+  S.phase = 'advance';
+  S.advanceT = ADVANCE_FRAMES;
+  S.journey++;
+  S.cam = 0;
+  S.crowds = S.crowds || [];
+  S.props = S.props || [];
+  /* 전진 연출용 구경꾼·소품을 화면 오른쪽에 추가 */
+  for (let i = 0; i < 7; i++) {
+    S.crowds.push({
+      x: W + 40 + i * 70 + Math.random() * 30,
+      z: Z_MIN + 12 + Math.random() * (Z_MAX - Z_MIN - 24),
+      bob: Math.random() * TAU,
+      cheer: 0.4 + Math.random() * 0.6,
+      tall: 0.85 + Math.random() * 0.3,
+    });
+  }
+  spawnLoot(Math.random() < 0.5 ? 'carrot' : 'bun', clamp(me.x + 80, 40, W - 40), me.z || 0);
+  if (Math.random() < 0.35) spawnLoot('horse', clamp(me.x + 140, 60, W - 60), (me.z || 0) + 10, { stam: 75 });
+  storyBanner('前進', `${JOURNEY_THEMES[S.theme].title}을 지나 앞으로`, '#a8322a');
+  emit({ k: 'score', x: r1(me.x), y: r1(me.y - 140), d: 50, wave: 1 });
+  S.score += 50;
+}
+
+function finishSurvivalAdvance() {
+  const S = game.story;
+  S.cam = 0;
+  /* 3구간마다 주막, 아니면 테마 바꾸고 다음 웨이브 */
+  if (S.journey > 0 && S.journey % 3 === 0) openInn();
+  else {
+    const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
+    const th = setJourneyTheme(nextTheme, true);
+    spawnJourneyScenery(nextTheme);
+    storyBanner(th.hanja, th.title);
+    nextSurvivalWave();
+  }
+}
+
+function openInn() {
+  const S = game.story;
+  S.phase = 'inn';
+  setJourneyTheme(3, true); /* 주막 골목 테마 */
+  spawnJourneyScenery(3);
+  $('talkName').textContent = '酒幕 · 주막';
+  $('talkText').textContent = '횃불이 흔들린다. 잠시 숨을 고르고 떠날 채비를 하자.';
+  $('innChoices').classList.remove('hidden');
+  $('talkNext').classList.add('hidden');
+  $('talk').classList.remove('hidden');
+}
+
+function closeInn() {
+  $('innChoices').classList.add('hidden');
+  $('talkNext').classList.remove('hidden');
+  $('talk').classList.add('hidden');
+}
+
+function chooseInn(opt) {
+  const g = game, S = g && g.story, me = g && g.players[0];
+  if (!S || S.phase !== 'inn' || !me) return;
+  if (opt === 'heal') {
+    storyHeal(0.35);
+    $('talkText').textContent = '따뜻한 국밥을 들이키니 기운이 돌아온다.';
+  } else if (opt === 'feed') {
+    if (me.mount) {
+      me.mount.stam = Math.min(me.mount.max, me.mount.stam + 55);
+      emit({ k: 'carrot', x: r1(me.x), y: r1(me.y - 90), d: 55 });
+      $('talkText').textContent = '말이 당근을 아삭 씹는다. 스태미나가 올랐다.';
+    } else {
+      mountHorse(me, HORSE_STAM);
+      $('talkText').textContent = '마구간에서 말을 빌렸다. 달리자.';
+    }
+  } else if (opt === 'weapon') {
+    me.lootWep = Math.random() < 0.5 ? 'saber' : 'pike';
+    emit({ k: 'loot', x: r1(me.x), y: r1(me.y - 90), d: LOOT_LABEL[me.lootWep] });
+    $('talkText').textContent = `${LOOT_LABEL[me.lootWep]}을(를) 허리에 찼다.`;
+  } else if (opt === 'go') {
+    closeInn();
+    const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
+    const th = setJourneyTheme(nextTheme === 3 ? 0 : nextTheme, true);
+    spawnJourneyScenery(S.theme);
+    storyBanner(th.hanja, th.title);
+    nextSurvivalWave();
+  }
 }
 
 function nextSurvivalWave() {
@@ -1365,7 +1530,12 @@ function nextSurvivalWave() {
     S.queue = queue.slice(0, Math.ceil(queue.length / 2));
     storyBanner(`제 ${n} 웨이브 · 적장 출현!`, `${CHAR[c].hanja} ${CHAR[c].name}`, '#e0463a');
   } else {
-    storyBanner(`제 ${n} 웨이브`, `${FACTIONS[S.st.faction].name} ${total}명`);
+    const th = JOURNEY_THEMES[S.theme || 0];
+    storyBanner(`제 ${n}구간`, S.survival ? `${th.title} · ${FACTIONS[S.st.faction].name} ${total}명` : `${FACTIONS[S.st.faction].name} ${total}명`);
+  }
+  if (S.survival) {
+    S.cam = 0;
+    if (!S.crowds || S.crowds.length < 4) spawnJourneyScenery(S.theme || 0);
   }
 }
 
@@ -1514,7 +1684,8 @@ function showTalkLine() {
 
 function advanceTalk() {
   const S = game && game.story;
-  if (!S || !S.talk) return;
+  if (!S || S.phase === 'inn') return;
+  if (!S.talk) return;
   S.talk.i++;
   showTalkLine();
 }
@@ -1528,7 +1699,8 @@ function onStoryKO(def, att) {
   }
   S.kills++;
   emit({ k: def === S.boss ? 'ko' : 'gko', x: r1(def.x), y: r1(def.y - 60), t: def.idx });
-  if (def.grunt && Math.random() < (S.survival ? 0.16 : 0.15)) g.items.push({ x: def.x, y: GROUND - 10, z: def.z || 0, life: 600 });
+  if (S.survival) dropSurvivalLoot(def);
+  else if (def.grunt && Math.random() < 0.15) spawnLoot('bun', def.x, def.z);
   if (S.survival) {
     survivalScore(def);
     if (def === S.boss) { S.boss = null; g.hitstop = 16; storyHeal(0.25); }
@@ -1543,13 +1715,31 @@ function onStoryKO(def, att) {
 function storyStep() {
   const g = game, S = g.story;
   g.frame++;
-  if (S.phase === 'talk' || S.phase === 'result') return;
+  if (S.phase === 'talk' || S.phase === 'result' || S.phase === 'inn') return;
   if (g.hitstop > 0) { g.hitstop--; return; }
   g.pt++;
   const me = g.players[0];
+  const advancing = S.survival && S.phase === 'advance';
   const fighting = S.phase === 'fight' && me.st !== ST.KO;
-  if (fighting) S.time++;
+  if (fighting || advancing) S.time++;
   if (S.comboT > 0 && --S.comboT === 0) S.combo = 0;
+
+  if (advancing) {
+    S.cam += 6.2;
+    S.advanceT--;
+    /* 앞으로 자동 전진 + 입력 이동 */
+    const inp = g.inputs[0];
+    updatePlayer(me, inp, { x: me.x + 400, y: me.y, z: me.z || 0, st: ST.IDLE }, true);
+    if (me.vx < 2.2) me.vx = Math.max(me.vx, 2.2);
+    me.x = clamp(me.x + 1.5, 24, W - 24);
+    for (const c of S.crowds || []) c.x -= 6.2;
+    for (const pr of S.props || []) pr.x -= 6.2;
+    updateItems(me);
+    for (const p of g.players) storePrevSeg(p);
+    if (S.advanceT <= 0) finishSurvivalAdvance();
+    g.pending.length = 0;
+    return;
+  }
 
   if (S.phase === 'fight' && S.queue.length && storyFoes().length < S.st.max && --S.spawnT <= 0) {
     spawnEnemy(S.queue.shift());
@@ -1580,6 +1770,7 @@ function storyStep() {
       checkHits(me, e);
       if (me.st !== ST.KO) checkHits(e, me);
     }
+    checkMountCharge(me, enemies);
   }
   updateProjs();
   updateItems(me);
@@ -1588,7 +1779,7 @@ function storyStep() {
   g.players = g.players.filter(p => p.idx === 0 || !(p.gone || (p.st === ST.KO && p.kt > 70)));
 
   if (S.phase === 'fight' && !S.queue.length && storyFoes().length === 0) {
-    if (S.survival) nextSurvivalWave();
+    if (S.survival) beginSurvivalAdvance();
     else if (S.wave < S.st.waves.length - 1) nextWave();
     else if (!S.bossSpawned) {
       S.bossSpawned = true;
@@ -1726,15 +1917,97 @@ function distToSeg(x, y, s) {
   return Math.hypot(x - (s.ax + dx * t), y - (s.ay + dy * t));
 }
 
+/* ----------------------------- 서바이벌 루팅: 만두/당근/무기/말 ----------------------------- */
+const HORSE_STAM = 100;
+const LOOT_LABEL = { saber: '칼', pike: '창', spear: '창' };
+
+function spawnLoot(kind, x, z, extra = {}) {
+  if (!game || !game.items) return;
+  game.items.push({ kind, x, y: GROUND - 10, z: z || 0, life: extra.life || 720, ...extra });
+}
+
+function dropSurvivalLoot(def) {
+  if (!game.story || !game.story.survival || !def.grunt) return;
+  const r = Math.random();
+  if (r < 0.12) spawnLoot('bun', def.x, def.z);
+  else if (r < 0.22) spawnLoot('carrot', def.x + (Math.random() * 40 - 20), def.z);
+  else if (r < 0.32) spawnLoot('weapon', def.x, def.z, { wep: def.c === 'pike' ? 'pike' : Math.random() < 0.45 ? 'pike' : 'saber' });
+  else if (r < 0.38) spawnLoot('horse', def.x + (Math.random() * 30 - 15), (def.z || 0) + (Math.random() * 20 - 10), { stam: HORSE_STAM });
+}
+
+function mountHorse(p, stam) {
+  if (p.mount) {
+    p.mount.stam = Math.min(HORSE_STAM, p.mount.stam + (stam || 40));
+    return;
+  }
+  p.mount = { stam: stam == null ? HORSE_STAM : stam, max: HORSE_STAM };
+  p.mountHit = new Set();
+  emit({ k: 'mount', x: r1(p.x), y: r1(p.y - 80) });
+}
+
+function dismountHorse(p, forced) {
+  if (!p.mount) return;
+  const stam = Math.max(0, p.mount.stam);
+  const x = p.x - p.f * 28, z = p.z || 0;
+  p.mount = null; p.mountHit = null; p.jTap = 0;
+  if (stam > 8 && game && game.story && game.story.survival) spawnLoot('horse', x, z, { stam, life: 900 });
+  emit({ k: forced ? 'dismount_force' : 'dismount', x: r1(p.x), y: r1(p.y - 70) });
+}
+
+function checkMountCharge(att, foes) {
+  if (!att.mount || att.df <= 0 || att.st === ST.KO) return;
+  if (!att.mountHit) att.mountHit = new Set();
+  if (att.df === DASH_FRAMES) att.mountHit = new Set();
+  att.mount.stam = Math.max(0, att.mount.stam - 0.35);
+  if (att.mount.stam <= 0) { dismountHorse(att, true); return; }
+  for (const t of foes) {
+    if (!t || t === att || t.st === ST.KO || t.gone || t.inv > 0) continue;
+    if (att.mountHit.has(t.idx)) continue;
+    if (Math.abs((att.z || 0) - (t.z || 0)) > Z_HIT) continue;
+    const dx = (t.x - att.x) * att.f;
+    if (dx < 10 || dx > 70 || Math.abs(t.y - att.y) > 70) continue;
+    att.mountHit.add(t.idx);
+    damage(att, t, { dmg: 14, kb: 11, up: 6 }, { x: t.x, y: t.y - 50 });
+    att.mount.stam = Math.max(0, att.mount.stam - 5);
+  }
+}
+
 function updateItems(me) {
   const g = game;
+  if (g.story && g.story.survival && g.frame % 220 === 0 && Math.random() < 0.55) {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    spawnLoot(Math.random() < 0.55 ? 'carrot' : (Math.random() < 0.5 ? 'weapon' : 'horse'),
+      clamp(me.x + side * (120 + Math.random() * 200), 40, W - 40),
+      clamp((me.z || 0) + (Math.random() * 50 - 25), Z_MIN, Z_MAX),
+      { wep: Math.random() < 0.5 ? 'saber' : 'pike', stam: 70 + ((Math.random() * 30) | 0) });
+  }
   for (const it of g.items) {
     it.life--;
-    if (me.st !== ST.KO && Math.abs(me.x - it.x) < 30 && Math.abs((me.z || 0) - (it.z || 0)) < Z_HIT && me.y > GROUND - 60) {
+    if (me.st === ST.KO || Math.abs(me.x - it.x) >= 32 || Math.abs((me.z || 0) - (it.z || 0)) >= Z_HIT || me.y < GROUND - 70) continue;
+    const kind = it.kind || 'bun';
+    if (kind === 'bun') {
       it.dead = true;
       const heal = 18;
       me.hp = Math.min(me.maxHp, me.hp + heal);
       emit({ k: 'heal', x: r1(it.x), y: r1(it.y - 40), d: heal });
+    } else if (kind === 'carrot') {
+      it.dead = true;
+      if (me.mount) {
+        me.mount.stam = Math.min(me.mount.max, me.mount.stam + 38);
+        emit({ k: 'carrot', x: r1(it.x), y: r1(it.y - 40), d: 38 });
+      } else {
+        me.hp = Math.min(me.maxHp, me.hp + 8);
+        emit({ k: 'heal', x: r1(it.x), y: r1(it.y - 40), d: 8 });
+      }
+    } else if (kind === 'weapon') {
+      it.dead = true;
+      if (me.lootWep) spawnLoot('weapon', me.x - me.f * 24, me.z, { wep: me.lootWep, life: 480 });
+      me.lootWep = it.wep || 'saber';
+      emit({ k: 'loot', x: r1(it.x), y: r1(it.y - 40), d: LOOT_LABEL[me.lootWep] || '무기' });
+    } else if (kind === 'horse') {
+      if (me.mount) continue;
+      it.dead = true;
+      mountHorse(me, it.stam != null ? it.stam : HORSE_STAM);
     }
   }
   g.items = g.items.filter(it => !it.dead && it.life > 0);
@@ -2499,6 +2772,25 @@ function handleEvent(ev) {
       Sound.tone(660, 990, 0.18, 'triangle', 0.2);
       popText(ev.x, ev.y, `+${ev.d}`, 24, '#2e8b3d', 50);
       break;
+    case 'carrot':
+      Sound.tone(520, 780, 0.14, 'triangle', 0.18);
+      popText(ev.x, ev.y, `말 +${ev.d}`, 20, '#e07028', 40);
+      break;
+    case 'loot':
+      Sound.tone(400, 700, 0.12, 'square', 0.12);
+      popText(ev.x, ev.y, `${ev.d} 획득!`, 18, '#3d5a80', 40);
+      break;
+    case 'mount':
+      Sound.tone(280, 420, 0.16, 'triangle', 0.2);
+      popText(ev.x, ev.y, '말 탑승!', 20, '#6b5a45', 42);
+      break;
+    case 'dismount':
+    case 'dismount_force':
+      popText(ev.x, ev.y, ev.k === 'dismount_force' ? '말 지침!' : '하마', 18, '#6b5a45', 36);
+      break;
+    case 'horse':
+      popText(ev.x, ev.y, `말 -${ev.d}`, 16, '#8a7355', 28);
+      break;
     case 'shoot':
       Sound.tone(520, 180, 0.12, 'triangle', 0.15);
       break;
@@ -2608,24 +2900,32 @@ function resize() {
   if (!$('storyScreen').classList.contains('hidden')) drawStageBosses();
 }
 
+function currentTheme() {
+  const id = bgThemeId || 'dusk';
+  return JOURNEY_THEMES.find(t => t.id === id) || JOURNEY_THEMES[0];
+}
+
 function buildBackground() {
   bgCanvas.width = canvas.width; bgCanvas.height = canvas.height;
   const c = bgCanvas.getContext('2d');
   const { dpr, scale, ox, oy } = view;
-  const rnd = mulberry32(20261031);
+  const th = currentTheme();
+  const seed = 20261031 + (th.id.charCodeAt(0) * 97);
+  const rnd = mulberry32(seed);
 
   c.setTransform(1, 0, 0, 1, 0, 0);
   const grad = c.createLinearGradient(0, 0, 0, bgCanvas.height);
-  grad.addColorStop(0, '#efe7d0'); grad.addColorStop(1, '#ddd2b4');
+  grad.addColorStop(0, th.sky[0]); grad.addColorStop(1, th.sky[1]);
   c.fillStyle = grad; c.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
   c.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
   const x0 = -ox / scale - 10, x1 = (view.w - ox) / scale + 10;
-  const y0 = -oy / scale - 10, y1 = (view.h - oy) / scale + 10;
+  const y1 = (view.h - oy) / scale + 10;
 
-  // 해 (붉은 낙관 느낌)
-  c.fillStyle = 'rgba(178, 48, 38, 0.55)';
-  c.beginPath(); c.arc(W * 0.78, 130, 46, 0, Math.PI * 2); c.fill();
+  // 해 / 달
+  const [sx, sy, sr, scol] = th.sun;
+  c.fillStyle = scol;
+  c.beginPath(); c.arc(W * sx, sy, sr, 0, Math.PI * 2); c.fill();
 
   // 수묵 산 3겹
   const layers = [
@@ -2646,28 +2946,46 @@ function buildBackground() {
     c.lineTo(x1, GROUND); c.closePath(); c.fill();
   }
 
+  // 테마 실루엣 (성문 / 주막 / 장대)
+  if (th.id === 'gate') {
+    c.fillStyle = 'rgba(40,36,32,0.28)';
+    c.fillRect(W * 0.62, 210, 28, 250); c.fillRect(W * 0.82, 210, 28, 250);
+    c.fillRect(W * 0.62, 200, 220, 26);
+    c.fillRect(W * 0.70, 226, 90, 120);
+  } else if (th.id === 'market') {
+    c.fillStyle = 'rgba(40,36,32,0.2)';
+    for (let i = 0; i < 4; i++) {
+      const bx = 80 + i * 200;
+      c.beginPath(); c.moveTo(bx, 340); c.lineTo(bx + 70, 300); c.lineTo(bx + 140, 340); c.closePath(); c.fill();
+      c.fillRect(bx + 18, 340, 100, 70);
+    }
+  } else if (th.id === 'alley') {
+    c.fillStyle = 'rgba(40,36,32,0.32)';
+    c.fillRect(40, 250, 160, 210); c.fillRect(W - 220, 230, 180, 230);
+    c.fillStyle = 'rgba(200,120,40,0.35)';
+    c.beginPath(); c.arc(90, 300, 10, 0, TAU); c.arc(W - 140, 280, 12, 0, TAU); c.fill();
+  }
+
   // 안개
   const mist = c.createLinearGradient(0, 360, 0, GROUND);
   mist.addColorStop(0, 'rgba(239,231,208,0)'); mist.addColorStop(1, 'rgba(239,231,208,0.7)');
   c.fillStyle = mist; c.fillRect(x0, 360, x1 - x0, GROUND - 360);
 
-  // 2.5D 바닥 (전후 레인): 위쪽이 먼 곳, 아래쪽이 카메라 쪽
+  // 2.5D 바닥
   const backY = groundSy(Z_MIN) - 8, frontY = groundSy(Z_MAX) + 36;
   const gg = c.createLinearGradient(0, backY, 0, frontY);
-  gg.addColorStop(0, '#cfc3a0'); gg.addColorStop(0.55, '#d6c9a6'); gg.addColorStop(1, '#bca97c');
+  gg.addColorStop(0, th.ground[0]); gg.addColorStop(0.55, th.ground[1]); gg.addColorStop(1, th.ground[2]);
   c.fillStyle = gg;
   c.beginPath();
   c.moveTo(x0, backY); c.lineTo(x1, backY); c.lineTo(x1, Math.max(frontY, y1)); c.lineTo(x0, Math.max(frontY, y1));
   c.closePath(); c.fill();
 
-  // 깊이 가이드 선
   c.strokeStyle = 'rgba(31,26,23,0.12)'; c.lineWidth = 1.5;
   for (let z = Z_MIN; z <= Z_MAX; z += 28) {
     const gy = groundSy(z);
     c.beginPath(); c.moveTo(x0, gy); c.lineTo(x1, gy); c.stroke();
   }
 
-  // 붓 터치 지면선 (중앙 레인)
   c.fillStyle = INK;
   c.beginPath();
   c.moveTo(x0, GROUND - 2);
@@ -2675,7 +2993,6 @@ function buildBackground() {
   for (let x = x1; x >= x0; x -= 5) c.lineTo(x, GROUND + 2 + Math.abs(Math.sin(x * 0.023 + 1)) * 3);
   c.closePath(); c.fill();
 
-  // 풀 / 돌 (전후 레인에 흩뿌림)
   c.strokeStyle = 'rgba(31,26,23,0.45)'; c.lineWidth = 1.5; c.lineCap = 'round';
   for (let i = 0; i < 60; i++) {
     const x = x0 + rnd() * (x1 - x0), h = 4 + rnd() * 9;
@@ -2692,14 +3009,12 @@ function buildBackground() {
     c.fill();
   }
 
-  // 서예 장식
   c.save();
   c.fillStyle = 'rgba(31,26,23,0.13)';
   c.font = `900 44px ${SERIF}`; c.textAlign = 'center';
-  ['天', '下', '三', '分'].forEach((ch, i) => c.fillText(ch, W - 46, 120 + i * 50));
+  (th.mark || ['天', '下', '三', '分']).forEach((ch, i) => c.fillText(ch, W - 46, 120 + i * 50));
   c.restore();
 
-  // 종이 질감
   c.setTransform(1, 0, 0, 1, 0, 0);
   const area = bgCanvas.width * bgCanvas.height;
   const specks = Math.min(4000, area / 600);
@@ -3044,10 +3359,13 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   c.globalAlpha = alpha * (p.inv && p.st === ST.DASH ? 0.7 : 1);
   c.lineCap = 'round'; c.lineJoin = 'round';
 
+  if (p.mount) drawHorseBody(c, now, ink, softInk);
+  if (p.mount) c.translate(0, -16);
+
   if (ch.id === 'caocao') drawCape(c, p, pose, now);
 
   // 뒷팔 (+ 유비의 두 번째 검)
-  if (ch.weapon === 'twin') drawWeapon(c, 'twin', pose.oh.x, pose.oh.y, pose.ow, p.ws, now, ink);
+  if (weaponId(p) === 'twin') drawWeapon(c, 'twin', pose.oh.x, pose.oh.y, pose.ow, p.ws, now, ink);
   limb(c, pose.sh, pose.oe, pose.oh, softInk, 4.2);
 
   // 다리
@@ -3079,8 +3397,9 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   drawHead(c, ch, p, pose, now, ink);
 
   // 주무기 + 앞팔
-  if (ch.weapon === 'bow') drawBow(c, p, pose, ink);
-  else drawWeapon(c, ch.weapon, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink, pose.grip);
+  const wid = weaponId(p);
+  if (wid === 'bow') drawBow(c, p, pose, ink);
+  else drawWeapon(c, wid, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink, pose.grip);
   limb(c, pose.sh, pose.me, pose.mh, ink, 4.6);
 
   c.fillStyle = ch.id === 'zhangfei' ? ch.accent : ink;
@@ -3155,7 +3474,15 @@ function drawStoryHUD(c) {
     c.font = `900 26px ${SERIF}`; c.fillStyle = RED;
     c.fillText(`${S.score.toLocaleString()}점`, W / 2, 82);
     c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.65)';
-    c.fillText(`서바이벌 · 제 ${Math.max(1, S.wave + 1)} 웨이브`, W / 2, 100);
+    const th = JOURNEY_THEMES[S.theme || 0];
+    c.fillText(`서바이벌 · ${th.title} · 제 ${Math.max(1, S.wave + 1)}구간`, W / 2, 100);
+    if (S.phase === 'fight' && S.queue.length + storyFoes().length > 0) {
+      c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(168,50,42,0.75)';
+      c.fillText('적을 쓰러뜨리면 길이 열린다 →', W / 2, 118);
+    } else if (S.phase === 'advance') {
+      c.font = '900 14px sans-serif'; c.fillStyle = RED;
+      c.fillText('前進 · 앞으로!', W / 2, 118);
+    }
     if (S.combo >= 3) {
       const mult = 1 + Math.min(1, S.combo / 50);
       const pop = 1 + Math.max(0, S.comboT - COMBO_KEEP + 8) * 0.04;
@@ -3229,6 +3556,19 @@ function drawPlayerBar(c, p, left, isMe) {
       const gf = clamp(p.gd / GUARD_MAX, 0, 1);
       c.fillStyle = gf < 0.3 ? '#d3541c' : '#3d6fb0';
       c.fillRect(left ? bx : bx + bw * (1 - gf), my + mh + 2, bw * gf, 3);
+    }
+    if (p.mount) {
+      const hf = clamp(p.mount.stam / p.mount.max, 0, 1);
+      const hy = my + mh + 6;
+      c.fillStyle = 'rgba(31,26,23,0.12)'; c.fillRect(bx, hy, bw, 5);
+      c.fillStyle = hf < 0.25 ? '#d3541c' : '#8a7355';
+      c.fillRect(left ? bx : bx + bw * (1 - hf), hy, bw * hf, 5);
+      c.strokeStyle = INK; c.lineWidth = 1; c.strokeRect(bx, hy, bw, 5);
+      c.font = '700 10px sans-serif'; c.fillStyle = INK; c.textAlign = left ? 'left' : 'right';
+      c.fillText(p.lootWep ? `말 · ${LOOT_LABEL[p.lootWep] || p.lootWep}` : '말', left ? bx : bx + bw, hy + 14);
+    } else if (p.lootWep) {
+      c.font = '700 11px sans-serif'; c.fillStyle = '#3d5a80'; c.textAlign = left ? 'left' : 'right';
+      c.fillText(`획득 무기: ${LOOT_LABEL[p.lootWep] || p.lootWep}`, left ? bx : bx + bw, my + mh + 16);
     }
 
     const sy = my + mh + 7;
@@ -3345,20 +3685,100 @@ function drawArrow(c, a) {
   c.stroke();
 }
 
-function drawBun(c, it, now) {
+function drawJourneyLayer(c, now) {
+  const S = game.story;
+  if (!S) return;
+  const cam = S.cam || 0;
+  /* 전진 게이트 표시 */
+  if (S.phase === 'fight') {
+    const foes = S.queue.length + storyFoes().length;
+    if (foes > 0) {
+      const gx = S.gateX || W * 0.72;
+      c.strokeStyle = 'rgba(168,50,42,0.35)'; c.lineWidth = 3; c.setLineDash([8, 8]);
+      c.beginPath(); c.moveTo(gx, groundSy(Z_MIN) - 20); c.lineTo(gx, groundSy(Z_MAX) + 30); c.stroke();
+      c.setLineDash([]);
+      c.fillStyle = 'rgba(168,50,42,0.55)'; c.font = `900 14px ${SERIF}`; c.textAlign = 'center';
+      c.fillText('戰', gx, groundSy(0) - 80);
+    }
+  }
+  for (const pr of S.props || []) {
+    const x = pr.x - cam * 0.35;
+    if (x < -80 || x > W + 80) continue;
+    const gy = groundSy(pr.z || 0);
+    c.fillStyle = 'rgba(40,36,32,0.22)';
+    if (pr.kind === 'gate' || pr.kind === 'alley') {
+      c.fillRect(x - 18, gy - 90, 36, 90);
+      c.fillRect(x - 28, gy - 100, 56, 14);
+    } else if (pr.kind === 'market' || pr.kind === 'stall') {
+      c.beginPath(); c.moveTo(x - 30, gy - 20); c.lineTo(x, gy - 55); c.lineTo(x + 30, gy - 20); c.closePath(); c.fill();
+      c.fillRect(x - 22, gy - 20, 44, 20);
+    } else {
+      c.strokeStyle = 'rgba(40,36,32,0.35)'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(x, gy); c.quadraticCurveTo(x + 6, gy - 30, x - 4, gy - 55); c.stroke();
+    }
+  }
+  const crowds = (S.crowds || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0));
+  for (const cr of crowds) {
+    const x = cr.x - cam * 0.85;
+    if (x < -40 || x > W + 40) continue;
+    const gy = groundSy(cr.z || 0);
+    const bob = Math.sin(now * 0.008 + cr.bob) * 2 * (cr.cheer || 0.5);
+    const s = cr.tall || 1;
+    c.strokeStyle = 'rgba(31,26,23,0.45)'; c.fillStyle = 'rgba(31,26,23,0.35)'; c.lineWidth = 2.2;
+    c.beginPath(); c.arc(x, gy - 58 * s + bob, 7 * s, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(x, gy - 50 * s + bob); c.lineTo(x, gy - 18 * s); c.stroke();
+    c.beginPath(); c.moveTo(x, gy - 40 * s + bob); c.lineTo(x - 10 * s, gy - 28 * s); c.moveTo(x, gy - 40 * s + bob); c.lineTo(x + 10 * s, gy - 28 * s); c.stroke();
+    c.beginPath(); c.moveTo(x, gy - 18 * s); c.lineTo(x - 7 * s, gy); c.moveTo(x, gy - 18 * s); c.lineTo(x + 7 * s, gy); c.stroke();
+    if (S.phase === 'advance' && cr.cheer > 0.55) {
+      c.fillStyle = 'rgba(168,50,42,0.55)'; c.font = '700 11px sans-serif'; c.textAlign = 'center';
+      c.fillText('!', x, gy - 70 * s + bob);
+    }
+  }
+}
+
+function drawHorseBody(c, now, ink, soft) {
+  const bob = Math.sin(now * 0.01) * 1.2;
+  c.fillStyle = soft; c.strokeStyle = ink; c.lineWidth = 2.2;
+  c.beginPath(); c.ellipse(2, -6 + bob, 28, 12, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(22, -10 + bob); c.quadraticCurveTo(34, -22 + bob, 38, -8 + bob); c.quadraticCurveTo(36, 0 + bob, 26, -2 + bob); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.arc(36, -10 + bob, 4.5, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.strokeStyle = ink; c.lineWidth = 2.4;
+  for (const lx of [-16, -6, 8, 18]) {
+    c.beginPath(); c.moveTo(lx, 2 + bob); c.lineTo(lx - 2, 16); c.stroke();
+  }
+}
+
+function drawItem(c, it, now) {
   const bob = Math.sin(now * 0.006 + it.x) * 2;
   const scr = toScreen(it.x, it.y + bob, it.z || 0);
   const x = scr.sx, y = scr.sy, gz = groundSy(it.z || 0);
+  const kind = it.kind || 'bun';
   c.save();
   c.globalAlpha = it.life < 90 ? (Math.floor(it.life / 6) % 2 ? 0.4 : 1) : 1;
   c.fillStyle = 'rgba(31,26,23,0.15)';
   c.beginPath(); c.ellipse(x, gz + 2, 12, 3, 0, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#fbf6ea'; c.strokeStyle = INK; c.lineWidth = 1.8;
-  c.beginPath(); c.ellipse(x, y, 13, 9, 0, Math.PI, 0); c.lineTo(x + 13, y + 3); c.lineTo(x - 13, y + 3); c.closePath(); c.fill(); c.stroke();
-  c.lineWidth = 1.2;
-  c.beginPath();
-  for (let i = -2; i <= 2; i++) { c.moveTo(x + i * 3, y - 8 + Math.abs(i)); c.quadraticCurveTo(x + i * 1.5, y - 4, x, y - 9); }
-  c.stroke();
+  if (kind === 'carrot') {
+    c.fillStyle = '#e07028'; c.strokeStyle = INK; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(x, y - 14); c.lineTo(x + 7, y + 6); c.lineTo(x - 7, y + 6); c.closePath(); c.fill(); c.stroke();
+    c.strokeStyle = '#2f8a4d'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x - 3, y - 12); c.lineTo(x - 6, y - 20); c.moveTo(x + 2, y - 13); c.lineTo(x + 5, y - 19); c.stroke();
+  } else if (kind === 'weapon') {
+    c.strokeStyle = INK; c.lineWidth = 3; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x - 16, y + 4); c.lineTo(x + 16, y - 8); c.stroke();
+    c.fillStyle = it.wep === 'pike' ? '#6b5a45' : '#a8322a';
+    c.beginPath(); c.moveTo(x + 16, y - 8); c.lineTo(x + 22, y - 14); c.lineTo(x + 10, y - 10); c.closePath(); c.fill();
+  } else if (kind === 'horse') {
+    c.fillStyle = '#8a7355'; c.strokeStyle = INK; c.lineWidth = 1.8;
+    c.beginPath(); c.ellipse(x, y - 4, 18, 9, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.beginPath(); c.arc(x + 14, y - 8, 5, 0, Math.PI * 2); c.fill(); c.stroke();
+  } else {
+    c.fillStyle = '#fbf6ea'; c.strokeStyle = INK; c.lineWidth = 1.8;
+    c.beginPath(); c.ellipse(x, y, 13, 9, 0, Math.PI, 0); c.lineTo(x + 13, y + 3); c.lineTo(x - 13, y + 3); c.closePath(); c.fill(); c.stroke();
+    c.lineWidth = 1.2;
+    c.beginPath();
+    for (let i = -2; i <= 2; i++) { c.moveTo(x + i * 3, y - 8 + Math.abs(i)); c.quadraticCurveTo(x + i * 1.5, y - 4, x, y - 9); }
+    c.stroke();
+  }
   c.restore();
 }
 
@@ -3485,7 +3905,9 @@ function render(now, k) {
     drawFighter(ctx, p, now, scr.sx, scr.sy, 0.1 + i * 0.05);
   });
 
-  if (g.items) for (const it of g.items) drawBun(ctx, it, now);
+  if (g.mode === 'story' && g.story && g.story.survival) drawJourneyLayer(ctx, now);
+
+  if (g.items) for (const it of g.items) drawItem(ctx, it, now);
 
   // 무기 궤적 + 캐릭터: z가 클수록(앞쪽) 나중에 그려 가림
   const order = g.players.slice().sort((a, b) => (a.rz || 0) - (b.rz || 0));
@@ -3512,7 +3934,7 @@ function render(now, k) {
       ctx.strokeStyle = 'rgba(30,110,220,0.8)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(hb.x0, hb.y0, hb.x1 - hb.x0, hb.y1 - hb.y0);
       const hits = moveOf(p).hits;
-      const arms = p.af >= 0 && moveOf(p).arms.length ? moveOf(p).arms : CHAR[p.c].weapon === 'twin' ? ['main', 'off'] : ['main'];
+      const arms = p.af >= 0 && moveOf(p).arms.length ? moveOf(p).arms : weaponId(p) === 'twin' ? ['main', 'off'] : ['main'];
       for (const arm of arms) {
         const active = p.af >= 0 && hits.some(h => h.arm === arm && p.af >= h.from && p.af <= h.to);
         const sgm = bladeSeg(p, pose, arm, scr.sx, scr.sy);
@@ -3683,8 +4105,11 @@ async function enterGame() {
 
 function leaveGame(to = 'menu') {
   netClose();
+  try { closeInn(); } catch (e) { /* ignore */ }
   game = null;
   spReady = false;
+  bgThemeId = 'dusk';
+  buildBackground();
   $('spBtn').classList.remove('ready');
   fx.cutin = null;
   for (const k of KEYS) { padHeld[k] = keyHeld[k] = mouseHeld[k] = false; }
@@ -3810,7 +4235,16 @@ function buildMenu() {
   $('survRanking').addEventListener('click', () => { rankChar = game.story.c; leaveGame('rank'); });
   $('survMenu').addEventListener('click', () => leaveGame('menu'));
   $('storyBack').addEventListener('click', () => showScreen('menu'));
-  $('talk').addEventListener('click', advanceTalk);
+  $('talk').addEventListener('click', e => {
+    if (game && game.story && game.story.phase === 'inn') return;
+    advanceTalk();
+  });
+  $('innChoices').addEventListener('click', e => {
+    const btn = e.target.closest('[data-inn]');
+    if (!btn) return;
+    e.stopPropagation();
+    chooseInn(btn.dataset.inn);
+  });
   $('resultNext').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx + 1); });
   $('resultRetry').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx); });
   $('resultMenu').addEventListener('click', () => { storyChar = game.story.c; leaveGame('story'); });

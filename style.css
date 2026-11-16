@@ -733,6 +733,34 @@ button.story {
   animation: blink 1.2s ease-in-out infinite;
 }
 
+.inn-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7vh;
+  margin-top: 1.2vh;
+}
+
+.inn-choices.hidden { display: none; }
+
+.inn-choices button {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: clamp(13px, 3.6vh, 17px);
+  padding: 1vh 1.2vw;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: rgba(255, 250, 235, 0.9);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.inn-choices button.primary {
+  background: var(--red);
+  color: #fff8e8;
+}
+
+.inn-choices button:active { transform: scale(0.98); }
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
