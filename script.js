@@ -897,19 +897,27 @@ function updatePlayer(p, inp, opp, ctrl) {
     }
     if (p.af < 0 && free && ctrl && p.bu > 0) {
       p.bu = 0;
-      const kind = !p.g ? (p.ak ? null : 'j') : dir === toward ? 'k' : 'p';
-      if (kind) {
-        if (kind === 'j') p.ak = true;
-        startMove(p, kind);
-        emit({ k: 'sw', p: p.idx, c: p.c, kick: 1 });
+      /* 근접 무기 줍기 / 제자리 체술이면 루팅 무기 버리고 고유 무기로 */
+      if (p.g && tryPickupWeapon(p)) { /* picked */ }
+      else if (p.g && p.lootWep && dir === 0) dropLootWeapon(p);
+      else {
+        const kind = !p.g ? (p.ak ? null : 'j') : dir === toward ? 'k' : 'p';
+        if (kind) {
+          if (kind === 'j') p.ak = true;
+          startMove(p, kind);
+          emit({ k: 'sw', p: p.idx, c: p.c, kick: 1 });
+        }
       }
     }
     if (p.af < 0 && free && ctrl && (p.ba > 0 || inp.a)) {
-      const kind = nextAttackKind(p);
-      if (kind) {
-        if (kind === 'j') p.ak = true;
-        startMove(p, kind);
-        emit({ k: 'sw', p: p.idx, c: p.c, kick: kind === 'k' || kind === 'j' ? 1 : 0 });
+      if (p.g && p.ba > 0 && tryPickupWeapon(p)) { p.ba = 0; }
+      else {
+        const kind = nextAttackKind(p);
+        if (kind) {
+          if (kind === 'j') p.ak = true;
+          startMove(p, kind);
+          emit({ k: 'sw', p: p.idx, c: p.c, kick: kind === 'k' || kind === 'j' ? 1 : 0 });
+        }
       }
     }
     if (p.bj > 0 && p.g && p.af < 0 && p.df <= 0) {
@@ -1518,9 +1526,11 @@ function chooseInn(opt) {
       $('talkText').textContent = '마구간에서 말을 빌렸다. 달리자.';
     }
   } else if (opt === 'weapon') {
-    me.lootWep = Math.random() < 0.5 ? 'saber' : 'pike';
+    const wep = Math.random() < 0.5 ? 'saber' : 'pike';
+    if (me.lootWep) dropLootWeapon(me);
+    me.lootWep = wep;
     emit({ k: 'loot', x: r1(me.x), y: r1(me.y - 90), d: LOOT_LABEL[me.lootWep] });
-    $('talkText').textContent = `${LOOT_LABEL[me.lootWep]}을(를) 허리에 찼다.`;
+    $('talkText').textContent = `${LOOT_LABEL[me.lootWep]}을(를) 허리에 찼다. 전장에서 체술(제자리)로 버리면 고유 무기로 돌아간다.`;
   } else if (opt === 'go') {
     closeInn();
     const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
@@ -2006,6 +2016,41 @@ function checkMountCharge(att, foes) {
   }
 }
 
+const LOOT_PICK_XZ = 36;
+
+function nearestWeaponLoot(p) {
+  if (!game || !game.items || p.st === ST.KO) return null;
+  let best = null, bestD = Infinity;
+  for (const it of game.items) {
+    if (it.dead || it.kind !== 'weapon' || it.life <= 0) continue;
+    if (p.y < GROUND - 70) continue;
+    const dx = Math.abs(p.x - it.x), dz = Math.abs((p.z || 0) - (it.z || 0));
+    if (dx >= LOOT_PICK_XZ || dz >= Z_HIT) continue;
+    const d = dx + dz * 0.5;
+    if (d < bestD) { bestD = d; best = it; }
+  }
+  return best;
+}
+
+function dropLootWeapon(p) {
+  if (!p.lootWep) return false;
+  const wep = p.lootWep;
+  p.lootWep = null;
+  spawnLoot('weapon', clamp(p.x - p.f * 28, 40, W - 40), p.z || 0, { wep, life: 900 });
+  emit({ k: 'loot_drop', x: r1(p.x), y: r1(p.y - 70), d: LOOT_LABEL[wep] || '무기' });
+  return true;
+}
+
+function tryPickupWeapon(p) {
+  const it = nearestWeaponLoot(p);
+  if (!it) return false;
+  it.dead = true;
+  if (p.lootWep) spawnLoot('weapon', clamp(p.x - p.f * 24, 40, W - 40), p.z || 0, { wep: p.lootWep, life: 900 });
+  p.lootWep = it.wep || 'saber';
+  emit({ k: 'loot', x: r1(it.x), y: r1(it.y - 40), d: LOOT_LABEL[p.lootWep] || '무기' });
+  return true;
+}
+
 function updateItems(me) {
   const g = game;
   if (g.story && g.story.survival && g.frame % 260 === 0 && Math.random() < 0.5) {
@@ -2021,6 +2066,8 @@ function updateItems(me) {
     it.life--;
     if (me.st === ST.KO || Math.abs(me.x - it.x) >= 32 || Math.abs((me.z || 0) - (it.z || 0)) >= Z_HIT || me.y < GROUND - 70) continue;
     const kind = it.kind || 'bun';
+    /* 무기는 자동 줍기 없음 — 근접 후 무기/체술로 줍기 */
+    if (kind === 'weapon') continue;
     if (kind === 'bun') {
       it.dead = true;
       const heal = 18;
@@ -2035,11 +2082,6 @@ function updateItems(me) {
         me.hp = Math.min(me.maxHp, me.hp + 8);
         emit({ k: 'heal', x: r1(it.x), y: r1(it.y - 40), d: 8 });
       }
-    } else if (kind === 'weapon') {
-      it.dead = true;
-      if (me.lootWep) spawnLoot('weapon', me.x - me.f * 24, me.z, { wep: me.lootWep, life: 480 });
-      me.lootWep = it.wep || 'saber';
-      emit({ k: 'loot', x: r1(it.x), y: r1(it.y - 40), d: LOOT_LABEL[me.lootWep] || '무기' });
     } else if (kind === 'horse') {
       if (me.mount) continue;
       it.dead = true;
@@ -2815,6 +2857,11 @@ function handleEvent(ev) {
     case 'loot':
       Sound.tone(400, 700, 0.12, 'square', 0.12);
       popText(ev.x, ev.y, `${ev.d} 획득!`, 18, '#3d5a80', 40);
+      popText(ev.x, ev.y - 22, '제자리 체술 · 고유무기', 12, '#6b7a90', 55);
+      break;
+    case 'loot_drop':
+      Sound.tone(320, 220, 0.1, 'triangle', 0.12);
+      popText(ev.x, ev.y, `${ev.d} 버림 · 고유 무기`, 16, '#3d5a80', 42);
       break;
     case 'mount':
       Sound.tone(280, 420, 0.16, 'triangle', 0.2);
@@ -3602,7 +3649,11 @@ function drawPlayerBar(c, p, left, isMe) {
       }
     } else if (p.lootWep) {
       c.font = '700 11px sans-serif'; c.fillStyle = '#3d5a80'; c.textAlign = left ? 'left' : 'right';
-      c.fillText(`획득 무기: ${LOOT_LABEL[p.lootWep] || p.lootWep}`, left ? bx : bx + bw, my + mh + 16);
+      c.fillText(`루팅: ${LOOT_LABEL[p.lootWep] || p.lootWep}`, left ? bx : bx + bw, my + mh + 16);
+      if (isMe) {
+        c.font = '700 11px sans-serif'; c.fillStyle = 'rgba(61,90,128,0.9)'; c.textAlign = 'center';
+        c.fillText('제자리 체술 · 고유 무기로 (루팅 버림)', W / 2, H - 56);
+      }
     }
 
     const sy = my + mh + 7;
@@ -3872,6 +3923,11 @@ function drawItem(c, it, now) {
     c.beginPath(); c.moveTo(x - 16, y + 4); c.lineTo(x + 16, y - 8); c.stroke();
     c.fillStyle = it.wep === 'pike' ? '#6b5a45' : '#a8322a';
     c.beginPath(); c.moveTo(x + 16, y - 8); c.lineTo(x + 22, y - 14); c.lineTo(x + 10, y - 10); c.closePath(); c.fill();
+    const me = game && game.players[game.me];
+    if (me && Math.abs(me.x - it.x) < LOOT_PICK_XZ && Math.abs((me.z || 0) - (it.z || 0)) < Z_HIT) {
+      c.font = '700 12px sans-serif'; c.fillStyle = RED; c.textAlign = 'center';
+      c.fillText('무기/체술 · 줍기', x, y - 28);
+    }
   } else if (kind === 'horse') {
     c.save();
     c.translate(x, gz);
