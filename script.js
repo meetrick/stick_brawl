@@ -1415,7 +1415,7 @@ function startStory(charId, stageIdx) {
 }
 
 /* ----------------------------- 서바이벌 모드 -----------------------------
- * 쓰러질 때까지 끝없는 웨이브. 웨이브 클리어 후 전진 스크롤 → (3구간마다) 주막 → 다음 테마.
+ * 쓰러질 때까지 끝없는 전쟁. 구간 클리어 → 즉시 다음 테마·웨이브. 주막/중간 회복 없음.
  * 점수 = 격파 점수 × 콤보 배율(연속 타격 50회에서 최대 ×2) + 웨이브 보너스.
  */
 const SURV_POINTS = { sword: 100, pike: 120, archer: 150, elite: 400 };
@@ -1423,12 +1423,11 @@ const SURV_BOSS_POINTS = 1500;
 const SURV_FACTIONS = ['yellow', 'dong', 'yuan', 'wei', 'shu'];
 const COMBO_KEEP = 150;
 const SURV_HP_MUL = 2.5;
-const ADVANCE_FRAMES = 110;
 const JOURNEY_THEMES = [
   { id: 'dusk', title: '황혼 들판', hanja: '黃昏', sky: ['#efe7d0', '#e0c9a0'], sun: [0.78, 130, 50, 'rgba(178,48,38,0.55)'], ground: ['#cfc3a0', '#d6c9a6', '#bca97c'], mark: ['天', '下', '路', '上'] },
   { id: 'gate', title: '성문 앞', hanja: '城門', sky: ['#e8e0cc', '#c8bda0'], sun: [0.22, 105, 38, 'rgba(120,90,60,0.4)'], ground: ['#c4b896', '#bbae88', '#a89870'], mark: ['城', '門', '前', '夜'] },
   { id: 'market', title: '장마당', hanja: '市井', sky: ['#f0e6d0', '#e2d2b0'], sun: [0.86, 95, 42, 'rgba(200,120,40,0.42)'], ground: ['#d2c4a0', '#c8b890', '#b5a478'], mark: ['市', '井', '喧', '囂'] },
-  { id: 'alley', title: '주막 골목', hanja: '酒幕', sky: ['#d8d0c0', '#b0a898'], sun: [0.55, 78, 30, 'rgba(70,55,90,0.4)'], ground: ['#b8ac90', '#a89c80', '#968870'], mark: ['酒', '幕', '燈', '火'] },
+  { id: 'night', title: '야전', hanja: '夜戰', sky: ['#d8d0c0', '#b0a898'], sun: [0.55, 78, 30, 'rgba(70,55,90,0.4)'], ground: ['#b8ac90', '#a89c80', '#968870'], mark: ['夜', '戰', '不', '休'] },
 ];
 let bgThemeId = 'dusk';
 const bgThemeCanvases = Object.create(null);
@@ -1446,13 +1445,14 @@ function startSurvival(charId) {
       wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
       phase: 'fight', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
       score: 0, combo: 0, comboT: 0, maxCombo: 0, hpMul: 1, dmgMul: 1, maxEngaged: MAX_ENGAGED,
-      cam: 0, theme: 0, journey: 0, advanceT: 0, gateX: W * 0.72,
+      theme: 0, journey: 0, gateX: W * 0.72,
     },
   };
   const me = makePlayer(0, charId, hc);
   me.maxHp = me.hp = me.hpLag = Math.round(me.maxHp * SURV_HP_MUL);
   me.x = me.rx = W * 0.32; me.z = me.rz = 0;
   game.players.push(me);
+  preloadJourneyThemes();
   setJourneyTheme(0, true);
   enterGame();
   nextSurvivalWave();
@@ -1463,81 +1463,23 @@ function setJourneyTheme(idx, rebuild) {
   const t = JOURNEY_THEMES[((idx % JOURNEY_THEMES.length) + JOURNEY_THEMES.length) % JOURNEY_THEMES.length];
   if (S) S.theme = ((idx % JOURNEY_THEMES.length) + JOURNEY_THEMES.length) % JOURNEY_THEMES.length;
   bgThemeId = t.id;
-  /* 전체 재생성 대신 테마 색만 바꾸고, 풍경은 스크롤로 이어 그린다 */
   if (rebuild !== false) buildBackground();
   return t;
 }
 
-function beginSurvivalAdvance() {
+/* 구간 클리어 → 즉시 다음 전쟁 (휴식/주막 없음) */
+function completeSurvivalSegment() {
   const g = game, S = g.story, me = g.players[0];
-  S.phase = 'advance';
-  S.advanceT = ADVANCE_FRAMES;
+  g.hitstop = 0;
   S.journey++;
+  S.phase = 'fight';
   spawnLoot(Math.random() < 0.5 ? 'carrot' : 'bun', clamp(me.x + 80, 40, W - 40), me.z || 0);
   if (Math.random() < 0.08) spawnLoot('horse', clamp(me.x + 140, 60, W - 60), (me.z || 0) + 10, { stam: 80 });
-  const th0 = JOURNEY_THEMES[S.theme] || JOURNEY_THEMES[0];
-  storyBanner('前進', `${th0.title}을 지나 앞으로`, '#a8322a');
   emit({ k: 'score', x: r1(me.x), y: r1(me.y - 140), d: 50, wave: 1 });
   S.score += 50;
-}
-
-function finishSurvivalAdvance() {
-  const S = game.story;
-  /* 3구간마다 주막, 아니면 테마 바꾸고 다음 웨이브 */
-  if (S.journey > 0 && S.journey % 3 === 0) openInn();
-  else {
-    const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
-    const th = setJourneyTheme(nextTheme, true);
-    storyBanner(th.hanja, th.title);
-    nextSurvivalWave();
-  }
-}
-
-function openInn() {
-  const S = game.story;
-  S.phase = 'inn';
-  setJourneyTheme(3, true); /* 주막 골목 테마 */
-  $('talkName').textContent = '酒幕 · 주막';
-  $('talkText').textContent = '횃불이 흔들린다. 잠시 숨을 고르고 떠날 채비를 하자.';
-  $('innChoices').classList.remove('hidden');
-  $('talkNext').classList.add('hidden');
-  $('talk').classList.remove('hidden');
-}
-
-function closeInn() {
-  $('innChoices').classList.add('hidden');
-  $('talkNext').classList.remove('hidden');
-  $('talk').classList.add('hidden');
-}
-
-function chooseInn(opt) {
-  const g = game, S = g && g.story, me = g && g.players[0];
-  if (!S || S.phase !== 'inn' || !me) return;
-  if (opt === 'heal') {
-    storyHeal(0.35);
-    $('talkText').textContent = '따뜻한 국밥을 들이키니 기운이 돌아온다.';
-  } else if (opt === 'feed') {
-    if (me.mount) {
-      me.mount.stam = Math.min(me.mount.max, me.mount.stam + 55);
-      emit({ k: 'carrot', x: r1(me.x), y: r1(me.y - 90), d: 55 });
-      $('talkText').textContent = '말이 당근을 아삭 씹는다. 스태미나가 올랐다.';
-    } else {
-      mountHorse(me, HORSE_STAM);
-      $('talkText').textContent = '마구간에서 말을 빌렸다. 달리자.';
-    }
-  } else if (opt === 'weapon') {
-    const wep = Math.random() < 0.5 ? 'saber' : 'pike';
-    if (me.lootWep) dropLootWeapon(me);
-    me.lootWep = wep;
-    emit({ k: 'loot', x: r1(me.x), y: r1(me.y - 90), d: LOOT_LABEL[me.lootWep] });
-    $('talkText').textContent = `${LOOT_LABEL[me.lootWep]}을(를) 허리에 찼다. 전장에서 체술(제자리)로 버리면 고유 무기로 돌아간다.`;
-  } else if (opt === 'go') {
-    closeInn();
-    const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
-    const th = setJourneyTheme(nextTheme === 3 ? 0 : nextTheme, true);
-    storyBanner(th.hanja, th.title);
-    nextSurvivalWave();
-  }
+  const nextTheme = (S.theme + 1) % JOURNEY_THEMES.length;
+  setJourneyTheme(nextTheme, true);
+  nextSurvivalWave();
 }
 
 function nextSurvivalWave() {
@@ -1549,7 +1491,6 @@ function nextSurvivalWave() {
     const bonus = (n - 1) * 100;
     S.score += bonus;
     emit({ k: 'score', x: r1(g.players[0].x), y: r1(g.players[0].y - 150), d: bonus, wave: 1 });
-    storyHeal(0.15);
   }
   S.st.faction = SURV_FACTIONS[(n - 1) % SURV_FACTIONS.length];
   S.st.max = Math.min(8, 4 + Math.floor(n / 3));
@@ -1726,8 +1667,7 @@ function showTalkLine() {
 
 function advanceTalk() {
   const S = game && game.story;
-  if (!S || S.phase === 'inn') return;
-  if (!S.talk) return;
+  if (!S || !S.talk) return;
   S.talk.i++;
   showTalkLine();
 }
@@ -1745,7 +1685,7 @@ function onStoryKO(def, att) {
   else if (def.grunt && Math.random() < 0.15) spawnLoot('bun', def.x, def.z);
   if (S.survival) {
     survivalScore(def);
-    if (def === S.boss) { S.boss = null; g.hitstop = 16; storyHeal(0.25); }
+    if (def === S.boss) { S.boss = null; g.hitstop = 16; }
     return;
   }
   if (def === S.boss) {
@@ -1757,28 +1697,13 @@ function onStoryKO(def, att) {
 function storyStep() {
   const g = game, S = g.story;
   g.frame++;
-  if (S.phase === 'talk' || S.phase === 'result' || S.phase === 'inn') return;
+  if (S.phase === 'talk' || S.phase === 'result') return;
   if (g.hitstop > 0) { g.hitstop--; return; }
   g.pt++;
   const me = g.players[0];
-  const advancing = S.survival && S.phase === 'advance';
   const fighting = S.phase === 'fight' && me.st !== ST.KO;
-  if (fighting || advancing) S.time++;
+  if (fighting) S.time++;
   if (S.comboT > 0 && --S.comboT === 0) S.combo = 0;
-
-  if (advancing) {
-    S.advanceT--;
-    /* 배경/카메라는 고정. 캐릭터만 짧게 앞으로 달려 다음 구간으로 */
-    const inp = g.inputs[0];
-    updatePlayer(me, inp, { x: me.x + 400, y: me.y, z: me.z || 0, st: ST.IDLE }, true);
-    if (me.vx < 2.2) me.vx = Math.max(me.vx, 2.2);
-    me.x = clamp(me.x + 1.5, 24, W - 24);
-    updateItems(me);
-    for (const p of g.players) storePrevSeg(p);
-    if (S.advanceT <= 0) finishSurvivalAdvance();
-    g.pending.length = 0;
-    return;
-  }
 
   if (S.phase === 'fight' && S.queue.length && storyFoes().length < S.st.max && --S.spawnT <= 0) {
     spawnEnemy(S.queue.shift());
@@ -1814,12 +1739,11 @@ function storyStep() {
   updateProjs();
   updateItems(me);
   if (me.hp < hpBefore) S.dmgTaken += hpBefore - me.hp;
-  /* 전투 중 배경 스크롤 끔 — 전진(advance) 때만 밀어서 모바일 멈춤 방지 */
   for (const p of g.players) storePrevSeg(p);
   g.players = g.players.filter(p => p.idx === 0 || !(p.gone || (p.st === ST.KO && p.kt > 70)));
 
   if (S.phase === 'fight' && !S.queue.length && storyFoes().length === 0) {
-    if (S.survival) beginSurvivalAdvance();
+    if (S.survival) completeSurvivalSegment();
     else if (S.wave < S.st.waves.length - 1) nextWave();
     else if (!S.bossSpawned) {
       S.bossSpawned = true;
@@ -3011,7 +2935,7 @@ function ensurePaperGrain() {
   return cnv;
 }
 
-/* 테마 배경은 캐시만 사용. 화면 스크롤/스트립 재생성을 하지 않는다. */
+/* 테마 배경은 캐시만 사용. 매 전환마다 canvas 리사이즈하지 않음(멈춤 원인). */
 function buildBackground() {
   const { dpr } = view;
   const key = `${bgThemeId}|${canvas.width}x${canvas.height}|${dpr}`;
@@ -3022,10 +2946,22 @@ function buildBackground() {
     paintThemeBackground(src);
     bgThemeCanvases[key] = src;
     const keys = Object.keys(bgThemeCanvases);
-    while (keys.length > 6) delete bgThemeCanvases[keys.shift()];
+    while (keys.length > 8) delete bgThemeCanvases[keys.shift()];
   }
-  bgCanvas.width = canvas.width; bgCanvas.height = canvas.height;
+  if (bgCanvas.width !== canvas.width || bgCanvas.height !== canvas.height) {
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+  }
   bgCanvas.getContext('2d').drawImage(src, 0, 0);
+}
+
+function preloadJourneyThemes() {
+  const prev = bgThemeId;
+  for (const t of JOURNEY_THEMES) {
+    bgThemeId = t.id;
+    buildBackground();
+  }
+  bgThemeId = prev || JOURNEY_THEMES[0].id;
 }
 
 function paintThemeBackground(target) {
@@ -3552,10 +3488,6 @@ function drawStoryHUD(c) {
     c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(31,26,23,0.65)';
     const th = JOURNEY_THEMES[S.theme || 0];
     c.fillText(`서바이벌 · ${th.title} · 제 ${Math.max(1, S.wave + 1)}구간`, W / 2, 100);
-    if (S.phase === 'advance') {
-      c.font = '900 14px sans-serif'; c.fillStyle = RED;
-      c.fillText('前進 · 앞으로!', W / 2, 118);
-    }
     if (me.mount) {
       c.font = '700 12px sans-serif'; c.fillStyle = 'rgba(107,90,69,0.9)';
       c.fillText('기마 · 대시돌격 · 점프×2 하마', W / 2, 134);
@@ -4272,7 +4204,6 @@ async function enterGame() {
 
 function leaveGame(to = 'menu') {
   netClose();
-  try { closeInn(); } catch (e) { /* ignore */ }
   game = null;
   spReady = false;
   bgThemeId = 'dusk';
@@ -4402,16 +4333,7 @@ function buildMenu() {
   $('survRanking').addEventListener('click', () => { rankChar = game.story.c; leaveGame('rank'); });
   $('survMenu').addEventListener('click', () => leaveGame('menu'));
   $('storyBack').addEventListener('click', () => showScreen('menu'));
-  $('talk').addEventListener('click', e => {
-    if (game && game.story && game.story.phase === 'inn') return;
-    advanceTalk();
-  });
-  $('innChoices').addEventListener('click', e => {
-    const btn = e.target.closest('[data-inn]');
-    if (!btn) return;
-    e.stopPropagation();
-    chooseInn(btn.dataset.inn);
-  });
+  $('talk').addEventListener('click', () => advanceTalk());
   $('resultNext').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx + 1); });
   $('resultRetry').addEventListener('click', () => { const S = game.story; leaveGame('story'); startStory(S.c, S.idx); });
   $('resultMenu').addEventListener('click', () => { storyChar = game.story.c; leaveGame('story'); });

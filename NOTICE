@@ -1,0 +1,22 @@
+Stick Brawl (스틱 브롤)
+Copyright 2025–2026 Hwangjae Lee (meetrick)
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+Please retain this copyright notice and attribution when you use,
+modify, or redistribute this work. Forks and learning use are welcome;
+commercial rebranding without credit is not.
+
+-------------------------------------------------------------------------------
+Third-party software
+
+PeerJS
+  Copyright (c) 2013 Michelle Bu, Eric Zhang, and PeerJS contributors
+  License: MIT
+  https://github.com/peers/peerjs
+
+This product loads PeerJS from a CDN at runtime for WebRTC signaling.
+PeerJS is not bundled in this repository; its license still applies to
+that dependency when used.
+-------------------------------------------------------------------------------
