@@ -1438,7 +1438,7 @@ function startSurvival(charId) {
       wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
       phase: 'fight', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
       score: 0, combo: 0, comboT: 0, maxCombo: 0, hpMul: 1, dmgMul: 1, maxEngaged: MAX_ENGAGED,
-      cam: 0, theme: 0, journey: 0, advanceT: 0, gateX: W * 0.72, bgScroll: 0,
+      cam: 0, theme: 0, journey: 0, advanceT: 0, gateX: W * 0.72,
     },
   };
   const me = makePlayer(0, charId, hc);
@@ -1757,11 +1757,8 @@ function storyStep() {
   if (S.comboT > 0 && --S.comboT === 0) S.combo = 0;
 
   if (advancing) {
-    const step = 6.2;
-    S.cam = (S.cam || 0) + step;
-    S.bgScroll = (S.bgScroll || 0) + step;
     S.advanceT--;
-    /* 앞으로 자동 전진 + 입력 이동 */
+    /* 배경/카메라는 고정. 캐릭터만 짧게 앞으로 달려 다음 구간으로 */
     const inp = g.inputs[0];
     updatePlayer(me, inp, { x: me.x + 400, y: me.y, z: me.z || 0, st: ST.IDLE }, true);
     if (me.vx < 2.2) me.vx = Math.max(me.vx, 2.2);
@@ -2936,7 +2933,6 @@ function resize() {
   view.oy = (view.h - H * view.scale) / 2;
   for (const k of Object.keys(bgThemeCanvases)) delete bgThemeCanvases[k];
   paperGrain = null;
-  landStrip = null; landView = null; landViewScroll = NaN;
   buildBackground();
   cachePadRects();
   sizePreviews();
@@ -2968,22 +2964,15 @@ function ensurePaperGrain() {
   return cnv;
 }
 
-/* 테마 배경은 캐시한다. 구간마다 전체 재생성하면 모바일에서 멈춘 것처럼 보인다. */
+/* 테마 배경은 캐시만 사용. 화면 스크롤/스트립 재생성을 하지 않는다. */
 function buildBackground() {
-  const { dpr, scale, ox, oy } = view;
-  const scrolling = !!(game && game.story && game.story.survival);
-  const key = `${bgThemeId}|${canvas.width}x${canvas.height}|${dpr}|${scrolling ? 's' : 'n'}`;
+  const { dpr } = view;
+  const key = `${bgThemeId}|${canvas.width}x${canvas.height}|${dpr}`;
   let src = bgThemeCanvases[key];
   if (!src) {
     src = document.createElement('canvas');
     src.width = canvas.width; src.height = canvas.height;
     paintThemeBackground(src);
-    /* 비스크롤 모드는 산을 테마에 한 번만 구워 둠 (매 프레임 blit 없음) */
-    if (!scrolling) {
-      const c = src.getContext('2d');
-      c.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
-      c.drawImage(ensureLandStrip(), 0, 0);
-    }
     bgThemeCanvases[key] = src;
     const keys = Object.keys(bgThemeCanvases);
     while (keys.length > 6) delete bgThemeCanvases[keys.shift()];
@@ -3011,12 +3000,28 @@ function paintThemeBackground(target) {
   c.fillStyle = scol;
   c.beginPath(); c.arc(W * sx, sy, sr, 0, Math.PI * 2); c.fill();
 
+  // 고정 산 실루엣 (한 번만 캐시)
+  const hills = [
+    { base: 305, amp: 95, alpha: 0.11, f: [0.0042, 0.011, 0.027], seed: 1.3 },
+    { base: 350, amp: 68, alpha: 0.17, f: [0.0055, 0.014, 0.031], seed: 4.1 },
+    { base: 395, amp: 44, alpha: 0.23, f: [0.007, 0.019, 0.043], seed: 7.7 },
+  ];
+  for (const L of hills) {
+    c.fillStyle = `rgba(40,36,32,${L.alpha})`;
+    c.beginPath(); c.moveTo(x0, GROUND);
+    for (let x = x0; x <= x1; x += 14) {
+      const n = Math.sin(x * L.f[0] + L.seed) * 0.55 + Math.sin(x * L.f[1] + L.seed * 2) * 0.3 + Math.sin(x * L.f[2] + L.seed * 3) * 0.15;
+      c.lineTo(x, L.base - Math.max(0, n + 0.35) * L.amp);
+    }
+    c.lineTo(x1, GROUND); c.closePath(); c.fill();
+  }
+
   // 안개
   const mist = c.createLinearGradient(0, 360, 0, GROUND);
   mist.addColorStop(0, 'rgba(239,231,208,0)'); mist.addColorStop(1, 'rgba(239,231,208,0.7)');
   c.fillStyle = mist; c.fillRect(x0, 360, x1 - x0, GROUND - 360);
 
-  // 2.5D 바닥 베이스 (산·풀은 스크롤 레이어에서만 그림)
+  // 2.5D 바닥
   const backY = groundSy(Z_MIN) - 8, frontY = groundSy(Z_MAX) + 36;
   const gg = c.createLinearGradient(0, backY, 0, frontY);
   gg.addColorStop(0, th.ground[0]); gg.addColorStop(0.55, th.ground[1]); gg.addColorStop(1, th.ground[2]);
@@ -3714,71 +3719,6 @@ function drawArrow(c, a) {
   c.stroke();
 }
 
-/* 루프 스트립 1장 + 스크롤 바뀔 때만 뷰 버퍼 갱신 → 프레임당 drawImage 1회 */
-const LAND_STRIP_W = 960;
-let landStrip = null, landView = null, landViewScroll = NaN;
-
-function ensureLandStrip() {
-  if (landStrip) return landStrip;
-  const cnv = document.createElement('canvas');
-  cnv.width = LAND_STRIP_W; cnv.height = H;
-  const c = cnv.getContext('2d');
-  const layers = [
-    { base: 300, amp: 100, alpha: 0.12, k: [2, 5, 9], seed: 1.3 },
-    { base: 345, amp: 72, alpha: 0.18, k: [3, 7, 13], seed: 4.1 },
-    { base: 392, amp: 46, alpha: 0.24, k: [4, 8, 15], seed: 7.7 },
-  ];
-  for (const L of layers) {
-    c.fillStyle = `rgba(40,36,32,${L.alpha})`;
-    c.beginPath(); c.moveTo(0, GROUND);
-    for (let x = 0; x <= LAND_STRIP_W; x += 14) {
-      let n = 0;
-      for (let i = 0; i < L.k.length; i++) {
-        const f = (Math.PI * 2 * L.k[i]) / LAND_STRIP_W;
-        n += Math.sin(x * f + L.seed * (i + 1)) * (i === 0 ? 0.55 : i === 1 ? 0.3 : 0.15);
-      }
-      c.lineTo(x, L.base - Math.max(0, n + 0.35) * L.amp);
-    }
-    c.lineTo(LAND_STRIP_W, GROUND); c.closePath(); c.fill();
-  }
-  c.strokeStyle = 'rgba(31,26,23,0.35)'; c.lineWidth = 1.3; c.lineCap = 'round';
-  for (let x = 18; x < LAND_STRIP_W; x += 48) {
-    const h = 4 + (x % 7), gy = GROUND - 8 + (x % 5);
-    c.beginPath();
-    c.moveTo(x, gy); c.lineTo(x - 2, gy - h);
-    c.moveTo(x + 2, gy); c.lineTo(x + 4, gy - h * 0.75);
-    c.stroke();
-  }
-  landStrip = cnv;
-  return cnv;
-}
-
-function drawScrollLandscape(c, scroll) {
-  const strip = ensureLandStrip();
-  let s = (scroll * 0.7) % LAND_STRIP_W;
-  if (s < 0) s += LAND_STRIP_W;
-  s |= 0;
-  if (!landView) {
-    landView = document.createElement('canvas');
-    landView.width = W; landView.height = H;
-  }
-  if (landViewScroll !== s) {
-    const lc = landView.getContext('2d');
-    lc.clearRect(0, 0, W, H);
-    lc.drawImage(strip, -s, 0);
-    if (s) lc.drawImage(strip, LAND_STRIP_W - s, 0);
-    landViewScroll = s;
-  }
-  c.drawImage(landView, 0, 0);
-}
-
-function drawJourneyLayer(c) {
-  const S = game.story;
-  if (!S) return;
-  /* 전진 구간에서만 스크롤 산을 그림. 전투 중엔 테마 캐시만 써서 멈춤을 막는다 */
-  if (S.phase === 'advance') drawScrollLandscape(c, S.bgScroll || 0);
-}
-
 /* 스틱 말. mount.moving / mount.gait 로 질주·정지. 반환=안장 bob */
 function drawHorseBody(c, now, ink, soft, mount) {
   const moving = !!(mount && mount.moving);
@@ -4056,9 +3996,6 @@ function render(now, k) {
     const z = 1 + fx.zoom;
     ctx.translate(fx.zx, fx.zy); ctx.scale(z, z); ctx.translate(-fx.zx, -fx.zy);
   }
-
-  /* 서바이벌만 스크롤 산. 그 외는 테마 캐시에 구운 산 사용 */
-  if (g.mode === 'story' && g.story && g.story.survival) drawJourneyLayer(ctx);
 
   // 그림자 (발 밑: 점프 높이와 z 깊이 반영)
   for (const p of g.players) {
