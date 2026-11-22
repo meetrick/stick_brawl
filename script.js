@@ -48,6 +48,8 @@ const WEAPONS = {
   halberd:   { from: -20, to: 84, r: 11, off: 0, grip2: -20, tip: 42, back: -40 },
   saber:     { from: 4,  to: 48,  r: 9,  off: 1, grip2: null, tip: 0 },
   bow:       { from: 0,  to: 0,   r: 0,  off: 0, grip2: null, tip: 0 },
+  /* 황충 장궁: 시위 사격 + 활대로 내려치는 근접 판정 */
+  longbow:   { from: -10, to: 42, r: 11, off: 0, grip2: null, tip: 0 },
 };
 
 /* 키프레임: [frame, handX, handY, weaponAngle] (어깨 기준, 오른쪽을 바라볼 때 좌표) */
@@ -234,6 +236,29 @@ const CHARACTERS = [
         { from: 36, to: 40, arm: 'butt', dmg: 4, kb: 2, up: 1 },
         { from: 45, to: 51, arm: 'main', dmg: 10, kb: 13, up: 7 },
       ],
+    },
+  },
+  {
+    id: 'huangzhong', name: '황충', hanja: '黃忠', weapon: 'longbow', weaponName: '한왕궁 (寒王弓)',
+    desc: '멀리서는 화살 · 가까이서는 활대로 내려친다. 노장의 백발백중',
+    hp: 0.95, speed: 0.98, jump: 0.94, body: '#5a4630', accent: '#c9a227', fx: '#d4a017',
+    stats: { 체력: 3, 속도: 3, 공격력: 4, 공속: 3, 사거리: 5 },
+    idle: { main: [22, 4, -0.2], off: [8, 14, 0], lean: 0 },
+    guard: { main: [16, -4, -0.55], off: [6, 8, 0], lean: -0.1 },
+    attack: {
+      total: 24, lunge: [6, 3.5],
+      main: [[4, 18, -8, -0.4], [8, 36, 4, 0.35], [12, 34, 14, 0.9], [18, 28, 10, 0.55]],
+      lean: [[4, -0.1], [8, 0.28], [12, 0.32], [18, 0.2]],
+      hits: [{ from: 7, to: 14, arm: 'main', dmg: 11, kb: 7, up: 3 }],
+    },
+    special: {
+      name: '백발백중', hanja: '百發百中', desc: '연속으로 세 발을 쏘아 전방의 적을 꿰뚫는다',
+      total: 52, armor: [4, 40],
+      fire: [14, 26, 38], arrow: { dmg: 8, speed: 13, life: 170, vy: -0.2 },
+      main: [[6, 36, -8, 0], [14, 36, -8, 0], [18, 34, -4, 0], [26, 36, -8, 0], [30, 34, -4, 0], [38, 36, -8, 0], [44, 32, -2, 0]],
+      off: [[6, 32, -6, 0], [12, 2, -10, 0], [14, 2, -10, 0], [18, 28, -4, 0], [24, 2, -10, 0], [26, 2, -10, 0], [30, 28, -4, 0], [36, 2, -10, 0], [38, 2, -10, 0], [44, 22, -2, 0]],
+      lean: [[6, -0.08], [14, -0.12], [26, -0.12], [38, -0.12], [44, -0.05]],
+      hits: [],
     },
   },
 ];
@@ -425,9 +450,31 @@ const COMBOS = {
       hits: [{ from: 19, to: 30, arm: 'main', dmg: 16, kb: 12, up: 7 }],
     },
   ],
+  huangzhong: [
+    {
+      name: '시위 당기기', total: 34, fire: 22, arrow: { dmg: 9, speed: 11.5, life: 155, vy: -0.35 },
+      main: [[4, 34, -8, 0], [22, 34, -8, 0], [26, 32, -4, 0]],
+      off: [[4, 30, -6, 0], [18, 2, -10, 0], [22, 2, -10, 0], [26, 22, -4, 0]],
+      lean: [[4, -0.08], [22, -0.12], [26, -0.04]],
+      hits: [],
+    },
+    {
+      name: '강궁 내려찍기', total: 40, fin: true, hop: [5, 8, 5], armor: [6, 24],
+      main: [[5, 8, -22, -1.8], [12, -6, -18, -2.4], [18, 28, 8, 0.5], [24, 38, 16, 1.0], [32, 34, 12, 0.7]],
+      lean: [[5, -0.2], [12, -0.28], [18, 0.3], [24, 0.38], [32, 0.25]],
+      hits: [{ from: 16, to: 28, arm: 'main', dmg: 16, kb: 11, up: 6 }],
+    },
+  ],
 };
 
 const CHAR = {};
+/* fire: 프레임 숫자 | {f} | [프레임...] — 시위를 놓는 순간(들) */
+const fireFrames = mv => {
+  if (mv == null || mv.fire == null) return [];
+  const f = mv.fire;
+  if (Array.isArray(f)) return f.map(v => (typeof v === 'object' ? v.f : v));
+  return [typeof f === 'object' ? f.f : f];
+};
 /* 무기 키프레임: [frame, handX, handY, 각도, 쥐는위치]. 쥐는위치 g>0이면 손이 자루 가운데 쪽으로 옮겨가 봉술처럼 돌릴 수 있다.
  * 끝 각도는 idle 각도와 같은 방향(2π 배수 차이)으로 맞춰 휘두른 방향 그대로 자연스럽게 돌아오게 한다. */
 const nearAngle = (base, ref) => base + TAU * Math.round((ref - base) / TAU);
@@ -443,7 +490,10 @@ function buildMoveKeys(ch, mv) {
   mv.rotK = mv.rot ? [[0, 0], ...mv.rot, [mv.total, nearAngle(0, mv.rot[mv.rot.length - 1][1])]] : null;
   mv.leanK = [[0, i.lean], ...mv.lean, [mv.total, i.lean]];
   mv.lunges = !mv.lunge ? [] : Array.isArray(mv.lunge[0]) ? mv.lunge : [mv.lunge];
-  mv.lastHitEnd = mv.hits.length ? Math.max(...mv.hits.map(h => h.to)) : mv.roar ? mv.roar.f : mv.counter ? mv.counter[1] : 0;
+  const fireEnd = fireFrames(mv);
+  mv.lastHitEnd = mv.hits.length ? Math.max(...mv.hits.map(h => h.to))
+    : fireEnd.length ? Math.max(...fireEnd)
+    : mv.roar ? mv.roar.f : mv.counter ? mv.counter[1] : 0;
   mv.legK = mv.legs ? [[0, ...mv.legBase], ...mv.legs, [mv.total, ...mv.legBase]] : null;
   mv.arms = [...new Set(mv.hits.map(h => h.arm))];
   return mv;
@@ -564,8 +614,8 @@ const moveOf = p => {
   return CHAR[p.c][key];
 };
 
-const AI_RANGE = { liubei: 62, guanyu: 98, zhangfei: 140, drunkfei: 120, caocao: 86, zhaoyun: 118, lubu: 124, sword: 72, pike: 112, archer: 400, elite: 88 };
-const AI_SP_RANGE = { liubei: 75, guanyu: 115, zhangfei: 210, drunkfei: 260, caocao: 155, zhaoyun: 160, lubu: 135, sword: 0, pike: 0, archer: 0, elite: 0 };
+const AI_RANGE = { liubei: 62, guanyu: 98, zhangfei: 140, drunkfei: 120, caocao: 86, zhaoyun: 118, lubu: 124, huangzhong: 300, sword: 72, pike: 112, archer: 400, elite: 88 };
+const AI_SP_RANGE = { liubei: 75, guanyu: 115, zhangfei: 210, drunkfei: 260, caocao: 155, zhaoyun: 160, lubu: 135, huangzhong: 380, sword: 0, pike: 0, archer: 0, elite: 0 };
 const DRUNK_MAX = 100;
 const isFei = id => id === 'zhangfei' || id === 'drunkfei';
 const drunkLevel = p => (CHAR[p.c] && CHAR[p.c].drunk ? clamp((p.drunk || 0) / DRUNK_MAX, 0, 1) : 0);
@@ -925,7 +975,7 @@ function updatePlayer(p, inp, opp, ctrl) {
       p.af++;
       if (p.g) for (const [f, v] of mv.lunges) if (p.af === f) p.vx = p.f * v * ch.speed;
       if (mv.roar && p.af === mv.roar.f) doRoar(p, opp);
-      if (mv.fire && p.af === mv.fire) fireArrow(p);
+      if (fireFrames(mv).includes(p.af)) fireArrow(p, mv.arrow);
       if (mv.dive && p.af === mv.dive[0]) { p.vx = p.f * mv.dive[1]; p.vy = Math.max(p.vy, mv.dive[2]); }
       if (mv.hop && p.af === mv.hop[0]) { p.vy = -mv.hop[1]; p.vx = p.f * mv.hop[2]; p.g = false; p.hopped = true; }
       if (mv.wave && p.af === mv.wave.f) spawnWave(p, mv.wave);
@@ -1280,11 +1330,23 @@ function updateAI(ai, me, opp, inp) {
   if (me.mp >= METER_MAX && me.af < 0 && dist < AI_SP_RANGE[me.c] * me.ws && Math.random() < 0.05) {
     if (me.c !== 'caocao' || (opp.af >= 0 && opp.af < 8)) inp.sc++;
   }
-  if (me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT) {
-    if ((opp.st === ST.GUARD || opp.st === ST.BLOCK) && dist < 85 && Math.random() < 0.1) { inp.l = dir < 0; inp.r = dir > 0; inp.uc++; }
-    else if (dist < 58 && Math.random() < 0.07) { inp.l = inp.r = false; inp.uc++; }
+  if (me.c === 'huangzhong') {
+    /* 황충: 중거리 유지 · 멀면 사격 콤보, 붙으면 활대 */
+    if (adx < 110) mv = -dir;
+    else if (adx > 340) mv = dir;
+    else if (adx > 200 && Math.random() < 0.35) mv = 0;
+    inp.l = mv < 0; inp.r = mv > 0;
+    if (me.af < 0 && Math.abs(opp.y - me.y) < 90 && adz < Z_HIT + 10) {
+      if (dist < 95 && Math.random() < 0.14) inp.ac++;
+      else if (dist >= 120 && dist < 420 && Math.random() < 0.13) inp.ac++;
+    }
+  } else {
+    if (me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT) {
+      if ((opp.st === ST.GUARD || opp.st === ST.BLOCK) && dist < 85 && Math.random() < 0.1) { inp.l = dir < 0; inp.r = dir > 0; inp.uc++; }
+      else if (dist < 58 && Math.random() < 0.07) { inp.l = inp.r = false; inp.uc++; }
+    }
+    if (dist < range && me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT && Math.random() < 0.11) inp.ac++;
   }
-  if (dist < range && me.af < 0 && Math.abs(opp.y - me.y) < 80 && adz < Z_HIT && Math.random() < 0.11) inp.ac++;
   if (opp.af >= 0 && opp.af < 10 && dist < 170 && me.dcd <= 0 && Math.random() < 0.05) {
     inp.l = dir > 0; inp.r = dir < 0; inp.dc++;
   }
@@ -1432,6 +1494,34 @@ const STORIES = {
         intro: [['조자룡', '공자님을 품에 안고… 반드시 주공께 돌아간다!']],
         bossTalk: [['조조', '과연 명불허전! 내가 직접 시험해 보마!'], ['조자룡', '누구도 이 길을 막을 수 없다!']],
         outro: [['조조', '칠진칠출… 저런 장수가 유비에게 있다니.'], ['조자룡', '주공! 공자님은 무사하십니다!']],
+      },
+    ],
+  },
+  huangzhong: {
+    title: '노장의 길', hanja: '老將之道', stages: [
+      {
+        name: '한중 출진', hanja: '漢中', faction: 'wei', max: 4,
+        waves: [[['sword', 4], ['archer', 2]], [['pike', 3], ['archer', 3]]],
+        boss: { c: 'elite', name: '장합', hanja: '張郃', hp: 1.7, with: [['pike', 2], ['archer', 1]] },
+        intro: [['황충', '이 늙은이가 아직 활시위를 당길 수 있음을 보여주마!']],
+        bossTalk: [['장합', '백발의 노장이 감히!'], ['황충', '백발백중, 받아라!']],
+        outro: [['황충', '나이는 숫자에 불과하다. 다음이다!']],
+      },
+      {
+        name: '정군산', hanja: '定軍山', faction: 'wei', max: 5,
+        waves: [[['sword', 4], ['pike', 2]], [['archer', 3], ['pike', 3], ['sword', 2]], [['pike', 4], ['archer', 2]]],
+        boss: { c: 'elite', name: '하후연', hanja: '夏侯淵', hp: 1.85, with: [['sword', 2], ['archer', 1]] },
+        intro: [['황충', '정군산의 하후연… 오늘 네 목을 베어 한중을 열겠다!']],
+        bossTalk: [['하후연', '노장 따위가 내 앞에!'], ['황충', '한 발로 충분하다!']],
+        outro: [['황충', '정군산이 열렸다. 주공의 대업이 가까워졌다!']],
+      },
+      {
+        name: '한수 결전', hanja: '漢水', faction: 'wei', max: 6,
+        waves: [[['pike', 4], ['sword', 3]], [['archer', 4], ['sword', 3]], [['sword', 4], ['pike', 3], ['archer', 2]]],
+        boss: { c: 'caocao', hp: 2.2, with: [['sword', 2], ['archer', 2]] },
+        intro: [['황충', '조조의 대군이 한수를 막는다. 이 활로 길을 열리라!']],
+        bossTalk: [['조조', '과연 노익장이로다. 직접 시험해 보마!'], ['황충', '주군을 위해, 물러서지 않는다!']],
+        outro: [['조조', '저 활… 천하의 명궁이로다.'], ['황충', '노장이 아직 죽지 않았음을 알렸다!']],
       },
     ],
   },
@@ -1905,9 +1995,14 @@ function enemyAI(e, me, fighting) {
   inp.f = mz < 0; inp.b = mz > 0;
 }
 
-function fireArrow(p) {
+function fireArrow(p, opts) {
   if (!game.projs) return;
-  game.projs.push({ kind: 'arrow', x: p.x + p.f * 34, y: p.y - 96, z: p.z || 0, vx: p.f * 9.5, vy: -0.5, owner: p, dmg: 5, life: 150 });
+  const o = opts || {};
+  const spd = o.speed ?? 9.5, dmg = o.dmg ?? 5, life = o.life ?? 150, vy = o.vy ?? -0.5;
+  game.projs.push({
+    kind: 'arrow', x: p.x + p.f * 34, y: p.y - 96, z: p.z || 0,
+    vx: p.f * spd, vy, owner: p, dmg, life,
+  });
   emit({ k: 'shoot', p: p.idx });
 }
 
@@ -3267,23 +3362,38 @@ function drawWeapon(c, type, hx, hy, ang, s, now, ink, grip = 0) {
   c.restore();
 }
 
-/* 활은 손 위치 기준으로 세워 그리고, 시위는 뒷손(oh)까지 당겨진다. 당기는 동안 화살이 시위에 걸려 보인다. */
+/* 활은 손 위치 기준으로 그린다. 당기는 동안은 세워 시위·화살을 보이고, 활타 때는 손 각도(pose.w)로 휘두른다. */
 function drawBow(c, p, pose, ink) {
   const { mh, oh } = pose;
-  const drawing = p.af >= 0 && p.af < (moveOf(p).fire || 0);
+  const mv = p.af >= 0 ? moveOf(p) : null;
+  const frames = mv ? fireFrames(mv) : [];
+  const nextFire = frames.find(f => p.af <= f);
+  const drawing = nextFire != null && p.af < nextFire;
+  const long = weaponId(p) === 'longbow';
+  const span = long ? 36 : 30, belly = long ? 18 : 14;
+  const swinging = !drawing && p.af >= 0 && mv && mv.hits && mv.hits.length;
   c.save();
   c.translate(mh.x, mh.y);
-  c.strokeStyle = '#6b4a2a'; c.lineWidth = 3; c.lineCap = 'round';
-  c.beginPath(); c.moveTo(-4, -30); c.quadraticCurveTo(14, 0, -4, 30); c.stroke();
-  c.restore();
-  const sx = drawing ? oh.x : mh.x - 4, sy = drawing ? oh.y : mh.y;
-  c.strokeStyle = 'rgba(60,50,40,0.8)'; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(mh.x - 4, mh.y - 30); c.lineTo(sx, sy); c.lineTo(mh.x - 4, mh.y + 30); c.stroke();
-  if (drawing) {
-    strokeLine(c, sx, sy, mh.x + 18, mh.y, '#5a4630', 1.8);
-    c.fillStyle = '#c3c9d0';
-    c.beginPath(); c.moveTo(mh.x + 18, mh.y - 2.5); c.lineTo(mh.x + 24, mh.y); c.lineTo(mh.x + 18, mh.y + 2.5); c.closePath(); c.fill();
+  if (swinging) c.rotate(pose.w);
+  c.strokeStyle = long ? '#8a6230' : '#6b4a2a'; c.lineWidth = long ? 3.6 : 3; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-4, -span); c.quadraticCurveTo(belly, 0, -4, span); c.stroke();
+  if (long) {
+    c.strokeStyle = ink; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(-2, -span + 4); c.lineTo(2, -span + 2); c.moveTo(-2, span - 4); c.lineTo(2, span - 2); c.stroke();
   }
+  if (!drawing) {
+    c.strokeStyle = 'rgba(60,50,40,0.75)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(-4, -span); c.lineTo(-4, span); c.stroke();
+    c.restore();
+    return;
+  }
+  c.restore();
+  const sx = oh.x, sy = oh.y;
+  c.strokeStyle = 'rgba(60,50,40,0.8)'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(mh.x - 4, mh.y - span); c.lineTo(sx, sy); c.lineTo(mh.x - 4, mh.y + span); c.stroke();
+  strokeLine(c, sx, sy, mh.x + 18, mh.y, '#5a4630', 1.8);
+  c.fillStyle = '#c3c9d0';
+  c.beginPath(); c.moveTo(mh.x + 18, mh.y - 2.5); c.lineTo(mh.x + 26, mh.y); c.lineTo(mh.x + 18, mh.y + 2.5); c.closePath(); c.fill();
 }
 
 function drawSoldierHead(c, ch, p, hd, ink, now) {
@@ -3417,6 +3527,17 @@ function drawHead(c, ch, p, pose, now, ink) {
     c.closePath(); c.fill();
     c.strokeStyle = ink; c.lineWidth = 1.2; c.stroke();
     c.fillStyle = '#6a2c8f'; c.beginPath(); c.arc(hd.x + 1, hd.y - 9, 2.2, 0, TAU); c.fill();
+  } else if (ch.id === 'huangzhong') {
+    /* 노장의 백발·금테 관 */
+    c.fillStyle = '#e8e0d0';
+    c.beginPath(); c.arc(hd.x - 1, hd.y - R - 1, 5.5, Math.PI, 0); c.fill();
+    strokeLine(c, hd.x - 10.5, hd.y - 4, hd.x + 10.5, hd.y - 5, ch.accent, 3.2);
+    c.fillStyle = '#d8d0c0';
+    c.beginPath();
+    c.moveTo(hd.x - 6, hd.y + 6); c.quadraticCurveTo(hd.x - 2, hd.y + 14, hd.x + 2, hd.y + 8);
+    c.quadraticCurveTo(hd.x + 6, hd.y + 16, hd.x + 8, hd.y + 7);
+    c.quadraticCurveTo(hd.x + 2, hd.y + 11, hd.x - 6, hd.y + 6);
+    c.fill();
   }
 
   // 눈
@@ -3425,7 +3546,7 @@ function drawHead(c, ch, p, pose, now, ink) {
     c.beginPath(); c.moveTo(hd.x + 3, hd.y - 3); c.lineTo(hd.x + 7, hd.y + 1); c.moveTo(hd.x + 7, hd.y - 3); c.lineTo(hd.x + 3, hd.y + 1); c.stroke();
   } else {
     c.fillStyle = ink; c.beginPath(); c.arc(hd.x + 5, hd.y - 0.5, 1.7, 0, Math.PI * 2); c.fill();
-    if (isFei(ch.id) || ch.id === 'guanyu' || ch.id === 'lubu') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
+    if (isFei(ch.id) || ch.id === 'guanyu' || ch.id === 'lubu' || ch.id === 'huangzhong') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
   }
 
   if (ch.drunk) {
@@ -3521,6 +3642,9 @@ function drawFighter(c, p, now, ox, oy, alpha) {
     strokeLine(c, bx - 5, by + 1, bx + 5, by - 1, ch.accent, 3.5);
   } else if (ch.id === 'guanyu') {
     strokeLine(c, pose.sh.x - 1, pose.sh.y + 3, pose.hip.x + 2, pose.hip.y - 6, '#2f8a4d', 2);
+  } else if (ch.id === 'huangzhong') {
+    const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.18, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.18;
+    strokeLine(c, bx - 5, by + 1, bx + 5, by - 1, ch.accent, 3.4);
   }
 
   // 목, 머리
@@ -3529,7 +3653,7 @@ function drawFighter(c, p, now, ox, oy, alpha) {
 
   // 주무기 + 앞팔
   const wid = weaponId(p);
-  if (wid === 'bow') drawBow(c, p, pose, ink);
+  if (wid === 'bow' || wid === 'longbow') drawBow(c, p, pose, ink);
   else drawWeapon(c, wid, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink, pose.grip);
   limb(c, pose.sh, pose.me, pose.mh, ink, 4.6);
 
@@ -3963,7 +4087,7 @@ function drawSeatedRider(c, p, basePose, now, ink, soft, bob) {
   drawHead(c, ch, p, seat, now, ink);
 
   const wid = weaponId(p);
-  if (wid === 'bow') drawBow(c, p, seat, ink);
+  if (wid === 'bow' || wid === 'longbow') drawBow(c, p, seat, ink);
   else drawWeapon(c, wid, mh.x, mh.y, seat.w, p.ws, now, ink, seat.grip);
   limb(c, sh, me, mh, ink, 4.2);
   if (wid === 'twin') drawWeapon(c, 'twin', oh.x, oh.y - 8, seat.ow, p.ws, now, ink);
@@ -4150,7 +4274,9 @@ function render(now, k) {
     const fade = g.mode === 'story' && p !== meP && p.st === ST.KO ? clamp(1 - (p.kt - 40) / 30, 0, 1) : 1;
     const pose = drawFighter(ctx, p, now, scr.sx, scr.sy, fade);
     if (p !== meP && g.mode === 'story' && p.af >= 0 && p.st === ST.ATK) {
-      const mv = moveOf(p), first = mv.hits.length ? mv.hits[0].from : mv.fire || 0;
+      const mv = moveOf(p);
+      const ff = fireFrames(mv);
+      const first = mv.hits.length ? mv.hits[0].from : (ff.length ? Math.min(...ff) : 0);
       if (p.af < first) drawWarn(ctx, p, pose, now);
     }
     if (p.dz > 0 && p.st !== ST.KO) drawDizzy(ctx, p, pose, now);
