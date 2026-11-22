@@ -130,6 +130,38 @@ const CHARACTERS = [
     },
   },
   {
+    id: 'drunkfei', name: '술취한 장비', hanja: '醉張飛', weapon: 'serpent', weaponName: '장팔사모 · 취중',
+    desc: '둔하고 비틀거리지만 취기만큼 강타 · 맞을수록 더 거칠어진다',
+    drunk: true, storyOf: 'zhangfei',
+    hp: 1.18, speed: 0.86, jump: 0.92, body: '#151515', accent: '#c0392b', fx: '#e07028',
+    stats: { 체력: 4, 속도: 2, 공격력: 5, 공속: 2, 사거리: 4 },
+    idle: { main: [16, 10, -0.55], off: [0, 0, 0], lean: 0.06 },
+    guard: { main: [12, -2, -1.2], lean: -0.08 },
+    attack: {
+      total: 40, lunge: [12, 4],
+      main: [[10, -10, -22, -1.9], [16, 26, 6, 0.35], [22, 36, 16, 1.05], [30, 32, 12, 0.85]],
+      lean: [[10, -0.22], [16, 0.22], [22, 0.38], [30, 0.28]],
+      hits: [{ from: 14, to: 26, arm: 'main', dmg: 17, kb: 12, up: 5 }],
+    },
+    special: {
+      name: '만취난무', hanja: '醉中狂舞', desc: '취기를 폭발시켜 전방위를 휩쓸고, 포효로 근처를 기절시킨다',
+      total: 58, armor: [4, 44], noWeak: true, drive: [8, 38, 3.4],
+      roar: { f: 44, range: 300, stun: 52, dmg: 6 },
+      main: [
+        [6, 18, 0, -1.57, 28], [12, 22, 4, 1.57, 28], [18, 22, 4, 4.71, 28],
+        [24, 22, 4, 7.85, 28], [30, 22, 4, 11.0, 28], [36, 34, 10, 14.2, 0], [44, 20, -20, -1.1],
+      ],
+      lean: [[6, 0.1], [24, 0.2], [36, 0.4], [44, 0.15]],
+      hits: [
+        { from: 8, to: 12, arm: 'main', dmg: 5, kb: 4, up: 2 },
+        { from: 12, to: 16, arm: 'butt', dmg: 5, kb: 4, up: 2 },
+        { from: 18, to: 22, arm: 'main', dmg: 5, kb: 4, up: 2 },
+        { from: 24, to: 30, arm: 'butt', dmg: 6, kb: 6, up: 3 },
+        { from: 34, to: 42, arm: 'main', dmg: 12, kb: 13, up: 6 },
+      ],
+    },
+  },
+  {
     id: 'caocao', name: '조조', hanja: '曹操', weapon: 'sevenstar', weaponName: '칠성보도 (七星寶刀)',
     desc: '기본 베기에도 검기가 나가는 운영형 · 짧은 쿨타임',
     hp: 1.0, speed: 1.06, jump: 1.0, body: '#6a2c8f', accent: '#b22222', fx: '#8a44c8',
@@ -325,6 +357,23 @@ const COMBOS = {
       hits: [{ from: 10, to: 24, arm: 'main', dmg: 14, kb: 11, up: 6 }],
     },
   ],
+  drunkfei: [
+    {
+      name: '취중 횡소', total: 36, noWeak: true, lunge: [[8, 3]],
+      main: [[5, -8, -24, -2.1], [12, 30, 4, 0.2], [18, 34, 18, 1.15], [26, 28, 10, 0.7]],
+      lean: [[5, -0.2], [12, 0.25], [18, 0.4], [26, 0.25]],
+      hits: [
+        { from: 8, to: 14, arm: 'main', dmg: 8, kb: 7, up: 3 },
+        { from: 14, to: 22, arm: 'main', dmg: 9, kb: 8, up: 4 },
+      ],
+    },
+    {
+      name: '항아리 내려찍기', total: 46, fin: true, hop: [6, 7, 5], armor: [6, 28],
+      main: [[6, -12, -18, -2.0], [14, -18, -10, -2.6], [20, 10, -28, -1.2], [26, 40, 8, 0.5], [34, 36, 12, 0.8]],
+      lean: [[6, -0.2], [14, -0.35], [26, 0.4], [34, 0.3]],
+      hits: [{ from: 18, to: 32, arm: 'main', dmg: 18, kb: 14, up: 8 }],
+    },
+  ],
   caocao: [
     {
       name: '역베기', total: 22, lunge: [[3, 3]],
@@ -515,8 +564,12 @@ const moveOf = p => {
   return CHAR[p.c][key];
 };
 
-const AI_RANGE = { liubei: 62, guanyu: 98, zhangfei: 140, caocao: 86, zhaoyun: 118, lubu: 124, sword: 72, pike: 112, archer: 400, elite: 88 };
-const AI_SP_RANGE = { liubei: 75, guanyu: 115, zhangfei: 210, caocao: 155, zhaoyun: 160, lubu: 135, sword: 0, pike: 0, archer: 0, elite: 0 };
+const AI_RANGE = { liubei: 62, guanyu: 98, zhangfei: 140, drunkfei: 120, caocao: 86, zhaoyun: 118, lubu: 124, sword: 72, pike: 112, archer: 400, elite: 88 };
+const AI_SP_RANGE = { liubei: 75, guanyu: 115, zhangfei: 210, drunkfei: 260, caocao: 155, zhaoyun: 160, lubu: 135, sword: 0, pike: 0, archer: 0, elite: 0 };
+const DRUNK_MAX = 100;
+const isFei = id => id === 'zhangfei' || id === 'drunkfei';
+const drunkLevel = p => (CHAR[p.c] && CHAR[p.c].drunk ? clamp((p.drunk || 0) / DRUNK_MAX, 0, 1) : 0);
+const storyIdOf = c => (CHAR[c] && CHAR[c].storyOf) || c;
 
 /* ----------------------------- 유틸 ----------------------------- */
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -590,6 +643,11 @@ function computePose(p, now) {
     m = style.idle.main.slice(); o = style.idle.off.slice(); lean = style.idle.lean;
     const br = Math.sin(now * 0.004 + p.idx * 2);
     m[1] += br * 1.5; m[2] += br * 0.04; o[1] += br * 1.2;
+    if (ch.drunk) {
+      const sway = Math.sin(now * 0.007 + p.idx) * (0.05 + drunkLevel(p) * 0.12);
+      lean += sway;
+      m[0] += Math.sin(now * 0.009 + p.idx) * (1.5 + drunkLevel(p) * 3);
+    }
   }
 
   let bob = 0, crouch = 0;
@@ -721,7 +779,7 @@ function makePlayer(idx, charId, handicapped) {
     mv: 'n', mp: 0, gd: GUARD_MAX, bs: 0, dz: 0, backT: 0, cs: 0, cw: 0, ak: false,
     wins: 0, ad: false, ljc: 0, lac: 0, ldc: 0, lsc: 0, luc: 0, bj: 0, ba: 0, bd: 0, bsp: 0, bu: 0, prevSeg: null,
     rx: 0, ry: GROUND, rz: 0, wp: 0, hpLag: maxHp, trails: {}, trailAf: -1, ghosts: [],
-    mount: null, lootWep: null, jTap: 0, mountHit: null, mountTip: 0,
+    mount: null, lootWep: null, jTap: 0, mountHit: null, mountTip: 0, drunk: 0, drunkRage: 0,
   };
   resetPlayer(p);
   return p;
@@ -737,6 +795,7 @@ function resetPlayer(p) {
   p.mv = 'n'; p.gd = GUARD_MAX; p.bs = 0; p.dz = 0; p.backT = 0; p.cs = 0; p.cw = 0; p.ak = false;
   p.ad = false; p.bj = p.ba = p.bd = p.bsp = p.bu = 0; p.prevSeg = null; p.trails = {}; p.trailAf = -1; p.ghosts.length = 0;
   p.mount = null; p.lootWep = null; p.jTap = 0; p.mountHit = null; p.mountTip = 0;
+  p.drunk = 0; p.drunkRage = 0;
 }
 
 function newInput() {
@@ -836,7 +895,14 @@ function updatePlayer(p, inp, opp, ctrl) {
   if (p.dz > 0) p.dz--;
   if (p.cw > 0) p.cw--;
   if (p.mountTip > 0) p.mountTip--;
-  if (p.st !== ST.BLOCK && p.gd < GUARD_MAX) p.gd = Math.min(GUARD_MAX, p.gd + 0.45);
+  if (p.drunkRage > 0) p.drunkRage--;
+  if (p.st !== ST.BLOCK && p.gd < GUARD_MAX) {
+    const regen = ch.drunk ? 0.22 : 0.45;
+    p.gd = Math.min(GUARD_MAX, p.gd + regen);
+  }
+  if (ch.drunk && p.st !== ST.KO) {
+    p.drunk = Math.min(DRUNK_MAX, (p.drunk || 0) + 0.035);
+  }
 
   const dir = ctrl ? (inp.r ? 1 : 0) - (inp.l ? 1 : 0) : 0;
   const zdir = ctrl ? (inp.b ? 1 : 0) - (inp.f ? 1 : 0) : 0;
@@ -891,6 +957,10 @@ function updatePlayer(p, inp, opp, ctrl) {
       p.bsp = 0;
       if (p.mp >= METER_MAX) {
         p.mp = 0;
+        if (ch.drunk) {
+          p.drunk = Math.min(DRUNK_MAX, Math.max(p.drunk || 0, 55) + 20);
+          p.drunkRage = Math.max(p.drunkRage || 0, 110);
+        }
         startMove(p, 's');
         emit({ k: 'sp', p: p.idx, c: p.c });
       }
@@ -922,7 +992,8 @@ function updatePlayer(p, inp, opp, ctrl) {
     }
     if (p.bj > 0 && p.g && p.af < 0 && p.df <= 0) {
       p.bj = 0;
-      p.vy = -JUMP_V * ch.jump * (p.mount ? 1.2 : 1);
+      const wobble = ch.drunk ? 1 + (Math.random() - 0.5) * 0.16 * (0.35 + drunkLevel(p)) : 1;
+      p.vy = -JUMP_V * ch.jump * (p.mount ? 1.2 : 1) * wobble;
       p.g = false;
     }
     if (p.df <= 0 && !(p.af >= 0 && (moveOf(p).air || moveOf(p).hop))) {
@@ -934,6 +1005,11 @@ function updatePlayer(p, inp, opp, ctrl) {
       const blend = p.g ? (p.af >= 0 ? 0.15 : 0.35) : 0.12;
       p.vx += (target - p.vx) * blend;
       p.vz += (zTarget - p.vz) * blend;
+      if (ch.drunk && p.g && p.af < 0) {
+        const sway = Math.sin((game ? game.frame : 0) * 0.13 + p.idx * 2.1) * (0.18 + drunkLevel(p) * 0.55);
+        p.vx += sway;
+        p.vz += Math.cos((game ? game.frame : 0) * 0.11 + p.idx) * (0.08 + drunkLevel(p) * 0.2);
+      }
     } else if (p.df > 0) {
       p.vz *= 0.85;
     }
@@ -1055,6 +1131,15 @@ function applyHit(att, def, h, i, pt) {
 function damage(att, def, h, pt) {
   if (att.dmgMul) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * att.dmgMul)) };
   if (att.mount) h = { ...h, dmg: Math.max(1, Math.round(h.dmg * 1.38)), kb: h.kb * 1.28 };
+  if (CHAR[att.c] && CHAR[att.c].drunk) {
+    const lv = drunkLevel(att), rage = att.drunkRage > 0 ? 1.12 : 1;
+    h = {
+      ...h,
+      dmg: Math.max(1, Math.round(h.dmg * (1.08 + lv * 0.42) * rage)),
+      kb: h.kb * (1.12 + lv * 0.38),
+      up: (h.up ?? 3) * (1.05 + lv * 0.2),
+    };
+  }
   const g = game, dmv = def.af >= 0 ? moveOf(def) : null;
   if (g.story && g.story.survival) {
     if (att.idx === 0) survivalComboHit();
@@ -1073,6 +1158,11 @@ function damage(att, def, h, pt) {
   def.fl = 10;
   if (att.mv !== 's') att.mp = Math.min(METER_MAX, att.mp + dmg * 1.1);
   def.mp = Math.min(METER_MAX, def.mp + dmg * 1.4);
+  if (CHAR[att.c] && CHAR[att.c].drunk) att.drunk = Math.min(DRUNK_MAX, (att.drunk || 0) + 7 + dmg * 0.25);
+  if (CHAR[def.c] && CHAR[def.c].drunk && def.hp > 0) {
+    def.drunk = Math.min(DRUNK_MAX, (def.drunk || 0) + 10);
+    def.drunkRage = Math.max(def.drunkRage || 0, 75);
+  }
   if (att.mount) att.mount.stam = Math.max(0, att.mount.stam - 1.2);
   const armored = dmv && dmv.armor && def.af >= dmv.armor[0] && def.af <= dmv.armor[1] && def.hp > 0;
   if (armored) {
@@ -1111,7 +1201,8 @@ function block(att, def, h, pt) {
   def.st = ST.BLOCK;
   def.bs = Math.round(8 + h.dmg * 0.45);
   def.vx = dir * h.kb * 0.6;
-  def.gd -= h.gd ?? h.dmg * 1.6;
+  const guardMul = CHAR[def.c] && CHAR[def.c].drunk ? 1.55 : 1;
+  def.gd -= (h.gd ?? h.dmg * 1.6) * guardMul;
   def.mp = Math.min(METER_MAX, def.mp + h.dmg * 0.6);
   if (att.mv !== 's') att.mp = Math.min(METER_MAX, att.mp + h.dmg * 0.3);
   if (def.x <= 34 || def.x >= W - 34) att.vx -= dir * h.kb * 0.6;
@@ -1394,7 +1485,8 @@ function saveStoryClear(c, idx, rec) {
 const storyFoes = () => game.players.filter(p => p.idx !== 0 && p.st !== ST.KO && !p.gone);
 
 function startStory(charId, stageIdx) {
-  const st = STORIES[charId].stages[stageIdx];
+  const sid = storyIdOf(charId);
+  const st = STORIES[sid].stages[stageIdx];
   const hc = $('handicap').checked;
   game = {
     mode: 'story', me: 0, code: '', handicap: hc,
@@ -1402,7 +1494,7 @@ function startStory(charId, stageIdx) {
     inputs: [newInput()], pending: [], lastF: -1, seen: new Set(), ai: null, lastRecv: performance.now(),
     projs: [], items: [],
     story: {
-      c: charId, idx: stageIdx, st, wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
+      c: charId, sid, idx: stageIdx, st, wave: -1, queue: [], spawnT: 0, side: 1, kills: 0, time: 0, dmgTaken: 0,
       phase: 'talk', phaseT: 0, talk: null, nextIdx: 1, boss: null, bossSpawned: false, banner: null, engaged: new Set(),
     },
   };
@@ -2020,8 +2112,9 @@ function showStoryResult(win) {
   S.phase = 'result';
   const me = game.players[0];
   const secs = Math.round(S.time / 60);
-  const total = STORIES[S.c].stages.length;
-  if (win) saveStoryClear(S.c, S.idx, { time: secs, kills: S.kills });
+  const sid = S.sid || storyIdOf(S.c);
+  const total = STORIES[sid].stages.length;
+  if (win) saveStoryClear(sid, S.idx, { time: secs, kills: S.kills });
   $('resultTitle').textContent = win ? `${S.st.name} 승리!` : '패배…';
   $('resultStats').innerHTML = [
     ['격파', `${S.kills}명`],
@@ -2030,7 +2123,7 @@ function showStoryResult(win) {
   ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
   $('resultNext').classList.toggle('hidden', !win || S.idx + 1 >= total);
   $('resultSub').textContent = win
-    ? (S.idx + 1 >= total ? `「${STORIES[S.c].title}」 완결! 천하에 이름을 떨쳤다.` : '다음 전장으로 나아가자.')
+    ? (S.idx + 1 >= total ? `「${STORIES[sid].title}」 완결! 천하에 이름을 떨쳤다.` : '다음 전장으로 나아가자.')
     : '다시 도전해 보세요. 막기와 발차기를 섞어 보세요!';
   $('storyResult').classList.remove('hidden');
 }
@@ -2399,14 +2492,18 @@ function onClientData(d) {
 
 function packPlayer(p) {
   return [r1(p.x), r1(p.y), r1(p.z || 0), r2(p.vx), r2(p.vy), r2(p.vz || 0), p.f, r1(p.hp), p.st, p.af, p.an, p.df, p.inv > 0 ? 1 : 0, p.fl, p.wins, p.g ? 1 : 0, p.kt,
-    Math.max(0, MOVE_CODES.indexOf(p.mv)), Math.round(p.mp), Math.round(p.gd), p.dz];
+    Math.max(0, MOVE_CODES.indexOf(p.mv)), Math.round(p.mp), Math.round(p.gd), p.dz,
+    Math.round(p.drunk || 0), p.drunkRage > 0 ? 1 : 0];
 }
 
 function unpackPlayer(p, a) {
-  let mv;
-  [p.x, p.y, p.z, p.vx, p.vy, p.vz, p.f, p.hp, p.st, p.af, p.an, p.df, p.inv, p.fl, p.wins, p.g, p.kt, mv, p.mp, p.gd, p.dz] = a;
+  let mv, drunkOn;
+  [p.x, p.y, p.z, p.vx, p.vy, p.vz, p.f, p.hp, p.st, p.af, p.an, p.df, p.inv, p.fl, p.wins, p.g, p.kt, mv, p.mp, p.gd, p.dz, p.drunk, drunkOn] = a;
   p.g = !!p.g;
   p.mv = MOVE_CODES[mv] || 'n';
+  p.drunk = p.drunk || 0;
+  if (drunkOn) p.drunkRage = Math.max(p.drunkRage || 0, 1);
+  else p.drunkRage = 0;
 }
 
 function broadcastState() {
@@ -2737,7 +2834,7 @@ function handleEvent(ev) {
   switch (ev.k) {
     case 'sw':
       if (ev.kick) Sound.noise(0.1, 700, 1600, 0.8, 0.2);
-      else Sound.swing(ev.c === 'guanyu' || ev.c === 'zhangfei');
+      else Sound.swing(ev.c === 'guanyu' || isFei(ev.c));
       break;
     case 'dash': {
       Sound.dash();
@@ -3273,7 +3370,7 @@ function drawHead(c, ch, p, pose, now, ink) {
     }
   }
 
-  if (ch.id === 'zhangfei') {
+  if (isFei(ch.id)) {
     c.strokeStyle = ink; c.lineWidth = 2.6;
     c.beginPath();
     for (let i = 0; i < 9; i++) {
@@ -3328,7 +3425,22 @@ function drawHead(c, ch, p, pose, now, ink) {
     c.beginPath(); c.moveTo(hd.x + 3, hd.y - 3); c.lineTo(hd.x + 7, hd.y + 1); c.moveTo(hd.x + 7, hd.y - 3); c.lineTo(hd.x + 3, hd.y + 1); c.stroke();
   } else {
     c.fillStyle = ink; c.beginPath(); c.arc(hd.x + 5, hd.y - 0.5, 1.7, 0, Math.PI * 2); c.fill();
-    if (ch.id === 'zhangfei' || ch.id === 'guanyu' || ch.id === 'lubu') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
+    if (isFei(ch.id) || ch.id === 'guanyu' || ch.id === 'lubu') strokeLine(c, hd.x + 1.5, hd.y - 5.5, hd.x + 8.5, hd.y - 3, ink, 1.8);
+  }
+
+  if (ch.drunk) {
+    const lv = drunkLevel(p);
+    const blush = 0.28 + lv * 0.45 + (p.drunkRage > 0 ? 0.12 : 0);
+    c.fillStyle = `rgba(196, 60, 48, ${blush.toFixed(2)})`;
+    c.beginPath(); c.ellipse(hd.x + 6.5, hd.y + 3.5, 3.2 + lv, 2.2 + lv * 0.6, 0, 0, TAU); c.fill();
+    c.beginPath(); c.ellipse(hd.x - 2.5, hd.y + 4, 2.6 + lv * 0.7, 1.8 + lv * 0.4, 0, 0, TAU); c.fill();
+    if (lv > 0.35 || p.drunkRage > 0) {
+      c.strokeStyle = `rgba(224, 112, 40, ${(0.25 + lv * 0.4).toFixed(2)})`;
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.arc(hd.x + 1, hd.y + 1, R + 3 + Math.sin(now * 0.02) * 1.5, 0.2, Math.PI * 1.1);
+      c.stroke();
+    }
   }
 
   // 관우의 긴 수염 (bezierCurveTo)
@@ -3387,12 +3499,19 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   // 몸통 (먹선 테두리 + 캐릭터 색)
   strokeLine(c, pose.hip.x, pose.hip.y, pose.sh.x, pose.sh.y, ink, 9.5);
   strokeLine(c, pose.hip.x, pose.hip.y, pose.sh.x, pose.sh.y, p.body || ch.body, 6);
-  if (ch.id === 'zhangfei') {
+  if (isFei(ch.id)) {
     const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.15, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.15;
     strokeLine(c, bx - 6, by + 1, bx + 6, by - 1, ch.accent, 4.5);
     const fl = Math.sin(now * 0.012 + p.idx) * 2;
     c.strokeStyle = ch.accent; c.lineWidth = 2.5;
     c.beginPath(); c.moveTo(bx - 5, by); c.quadraticCurveTo(bx - 12, by + 5 + fl, bx - 15 - clamp(p.vx * p.f, -4, 8), by + 13 + fl); c.stroke();
+    if (ch.drunk) {
+      const jar = Math.sin(now * 0.015 + p.idx) * 2;
+      c.fillStyle = '#6a3a1a'; c.strokeStyle = ink; c.lineWidth = 1.4;
+      c.beginPath(); c.ellipse(bx - 14, by + 10 + jar, 5.5, 7, 0.2, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(224,112,40,0.55)';
+      c.beginPath(); c.ellipse(bx - 14, by + 6 + jar, 3.2, 2.2, 0.2, 0, TAU); c.fill();
+    }
   } else if (ch.id === 'lubu') {
     const bx = pose.hip.x + (pose.sh.x - pose.hip.x) * 0.15, by = pose.hip.y + (pose.sh.y - pose.hip.y) * 0.15;
     strokeLine(c, bx - 6, by + 1, bx + 6, by - 1, ch.accent, 4);
@@ -3414,7 +3533,7 @@ function drawFighter(c, p, now, ox, oy, alpha) {
   else drawWeapon(c, wid, pose.mh.x, pose.mh.y, pose.w, p.ws, now, ink, pose.grip);
   limb(c, pose.sh, pose.me, pose.mh, ink, 4.6);
 
-  c.fillStyle = ch.id === 'zhangfei' ? ch.accent : ink;
+  c.fillStyle = isFei(ch.id) ? ch.accent : ink;
   c.beginPath(); c.arc(pose.mh.x, pose.mh.y, 3.2, 0, Math.PI * 2); c.fill();
   c.fillStyle = ink;
   c.beginPath(); c.arc(pose.oh.x, pose.oh.y, 2.8, 0, Math.PI * 2); c.fill();
@@ -3540,6 +3659,7 @@ function drawPlayerBar(c, p, left, isMe) {
     if (isMe) tag('나', RED);
     if (p.hc) tag('핸디캡', '#2f6fd6');
     if (p.isBoss) tag('적장', '#6a2c8f');
+    if (CHAR[p.c] && CHAR[p.c].drunk) tag('취중', '#e07028');
 
     const frac = clamp(p.hp / p.maxHp, 0, 1), lag = clamp(p.hpLag / p.maxHp, 0, 1);
     c.fillStyle = 'rgba(31,26,23,0.15)'; c.fillRect(bx, by, bw, bh);
@@ -3566,9 +3686,25 @@ function drawPlayerBar(c, p, left, isMe) {
       c.fillStyle = gf < 0.3 ? '#d3541c' : '#3d6fb0';
       c.fillRect(left ? bx : bx + bw * (1 - gf), my + mh + 2, bw * gf, 3);
     }
+    let extraY = my + mh + 6;
+    if (CHAR[p.c] && CHAR[p.c].drunk) {
+      const df = clamp((p.drunk || 0) / DRUNK_MAX, 0, 1);
+      const dy = extraY;
+      c.fillStyle = 'rgba(31,26,23,0.12)'; c.fillRect(bx, dy, bw, 5);
+      const hot = p.drunkRage > 0 || df > 0.7;
+      c.fillStyle = hot
+        ? `rgba(224,112,40,${0.7 + Math.sin(renderFrame * 0.22) * 0.25})`
+        : '#c0392b';
+      c.fillRect(left ? bx : bx + bw * (1 - df), dy, bw * df, 5);
+      c.strokeStyle = INK; c.lineWidth = 1; c.strokeRect(bx, dy, bw, 5);
+      c.font = '700 10px sans-serif'; c.fillStyle = hot ? '#b05a10' : '#8a2a22';
+      c.textAlign = left ? 'left' : 'right';
+      c.fillText(df >= 1 ? '만취!' : '취기', left ? bx : bx + bw, dy + 14);
+      extraY += 18;
+    }
     if (p.mount) {
       const hf = clamp(p.mount.stam / p.mount.max, 0, 1);
-      const hy = my + mh + 6;
+      const hy = extraY;
       c.fillStyle = 'rgba(31,26,23,0.12)'; c.fillRect(bx, hy, bw, 5);
       c.fillStyle = hf < 0.25 ? '#d3541c' : '#8a7355';
       c.fillRect(left ? bx : bx + bw * (1 - hf), hy, bw * hf, 5);
@@ -3579,16 +3715,18 @@ function drawPlayerBar(c, p, left, isMe) {
         c.font = '700 12px sans-serif'; c.fillStyle = RED; c.textAlign = 'center';
         c.fillText(p.jTap > 0 ? '점프 한 번 더 → 하마' : '점프 연속 2번 = 하마 · 대시 = 돌격', W / 2, H - 56);
       }
+      extraY += 18;
     } else if (p.lootWep) {
       c.font = '700 11px sans-serif'; c.fillStyle = '#3d5a80'; c.textAlign = left ? 'left' : 'right';
-      c.fillText(`루팅: ${LOOT_LABEL[p.lootWep] || p.lootWep}`, left ? bx : bx + bw, my + mh + 16);
+      c.fillText(`루팅: ${LOOT_LABEL[p.lootWep] || p.lootWep}`, left ? bx : bx + bw, extraY + 10);
       if (isMe) {
         c.font = '700 11px sans-serif'; c.fillStyle = 'rgba(61,90,128,0.9)'; c.textAlign = 'center';
         c.fillText('제자리 체술 · 고유 무기로 (루팅 버림)', W / 2, H - 56);
       }
+      extraY += 16;
     }
 
-    const sy = my + mh + 7;
+    const sy = Math.max(my + mh + 7, extraY);
     for (let wv = 0; wv < Math.min(p.wins, 5); wv++) {
       const sx = left ? bx + wv * 22 : bx + bw - 18 - wv * 22;
       c.fillStyle = RED; c.fillRect(sx, sy, 18, 18);
@@ -3816,7 +3954,7 @@ function drawSeatedRider(c, p, basePose, now, ink, soft, bob) {
   strokeLine(c, hip.x, hip.y, sh.x, sh.y, ink, 8.5);
   strokeLine(c, hip.x, hip.y, sh.x, sh.y, p.body || ch.body, 5.2);
   if (ch.id === 'guanyu') strokeLine(c, sh.x - 1, sh.y + 2, hip.x + 1, hip.y - 4, '#2f8a4d', 2);
-  else if (ch.id === 'zhangfei' || ch.id === 'lubu' || ch.id === 'liubei') {
+  else if (isFei(ch.id) || ch.id === 'lubu' || ch.id === 'liubei') {
     const bx = hip.x + (sh.x - hip.x) * 0.2, by = hip.y + (sh.y - hip.y) * 0.2;
     strokeLine(c, bx - 5, by, bx + 5, by - 1, ch.accent, 3.2);
   }
@@ -4219,22 +4357,28 @@ function leaveGame(to = 'menu') {
 let storyChar = null;
 
 function buildStoryScreen() {
-  const c = storyChar || selectedChar;
+  let c = storyChar || selectedChar;
+  if (!STORIES[storyIdOf(c)]) c = selectedChar;
+  if (!STORIES[storyIdOf(c)]) c = CHARACTERS.find(h => STORIES[h.id]).id;
   storyChar = c;
-  const story = STORIES[c], ch = CHAR[c];
-  const prog = storyProgress()[c] || { cleared: 0, best: {} };
+  const sid = storyIdOf(c);
+  const story = STORIES[sid], ch = CHAR[c];
+  const prog = storyProgress()[sid] || { cleared: 0, best: {} };
   const tabs = $('storyTabs');
   tabs.innerHTML = '';
   for (const h of CHARACTERS) {
+    if (!STORIES[storyIdOf(h.id)]) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'story-tab' + (h.id === c ? ' on' : '');
-    const done = (storyProgress()[h.id] || {}).cleared || 0;
-    b.innerHTML = `${h.name}<small>${done}/${STORIES[h.id].stages.length}</small>`;
+    const hid = storyIdOf(h.id);
+    const done = (storyProgress()[hid] || {}).cleared || 0;
+    b.innerHTML = `${h.name}<small>${done}/${STORIES[hid].stages.length}</small>`;
     b.addEventListener('click', () => { storyChar = h.id; buildStoryScreen(); });
     tabs.appendChild(b);
   }
-  $('storyTitle').textContent = `${ch.hanja} ${ch.name} · 「${story.title}」`;
+  const storyNote = ch.storyOf ? ` · ${CHAR[sid].name} 이야기` : '';
+  $('storyTitle').textContent = `${ch.hanja} ${ch.name}${storyNote} · 「${story.title}」`;
   const list = $('stageList');
   list.innerHTML = '';
   story.stages.forEach((st, i) => {
@@ -4259,7 +4403,7 @@ function buildStoryScreen() {
 }
 
 function drawStageBosses() {
-  const story = STORIES[storyChar];
+  const story = STORIES[storyIdOf(storyChar)];
   if (!story) return;
   [...document.querySelectorAll('.stage-boss')].forEach((cv, i) => {
     const st = story.stages[i], b = st.boss, fac = FACTIONS[st.faction];
@@ -4305,6 +4449,7 @@ function buildMenu() {
     list.appendChild(card);
     const p = makePlayer(i, ch.id, false);
     p.f = 1;
+    if (ch.drunk) p.drunk = 60;
     previews.push({ card, cv, p, t: 0 });
   });
   selectChar(selectedChar);
